@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext } from 'react';
 import { User, Task, Course, JobOpportunity, Notification, LoginSession } from '@/types';
 import { mockUsers, mockTasks, mockCourses, mockJobOpportunities, mockNotifications, mockLoginSessions } from '@/data/mockData';
@@ -14,6 +13,7 @@ interface AppContextType {
   loginSessions: LoginSession[];
   login: (email: string, password: string) => boolean;
   logout: () => void;
+  updateCurrentUser: (user: User) => void;
   addUser: (user: Omit<User, 'id' | 'isActive'>) => void;
   updateUser: (user: User) => void;
   deleteUser: (id: string) => void;
@@ -82,6 +82,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         description: "You have been logged out successfully",
       });
     }
+  };
+
+  const updateCurrentUser = (user: User) => {
+    setCurrentUser(user);
+    setUsers(users.map(u => (u.id === user.id ? user : u)));
+    toast({
+      title: "Profile updated",
+      description: "Your profile has been updated successfully",
+    });
   };
 
   const addUser = (user: Omit<User, 'id' | 'isActive'>) => {
@@ -242,6 +251,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loginSessions,
     login,
     logout,
+    updateCurrentUser,
     addUser,
     updateUser,
     deleteUser,

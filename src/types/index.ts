@@ -9,7 +9,9 @@ export interface User {
   email: string;
   role: UserRole;
   department?: Department;
-  skills?: Skill[];
+  skills?: string[];
+  skillLevel?: SkillLevel;
+  experience?: number;
   experienceLevel?: number;
   description?: string;
   phoneNumber: string;

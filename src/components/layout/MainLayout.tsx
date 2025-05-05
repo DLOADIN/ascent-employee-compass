@@ -17,15 +17,15 @@ const ChartsRegistry = () => {
   return (
     <div className="hidden">
       <PieChart width={100} height={100}>
-        <Pie data={[]} dataKey="" nameKey="" cx="" cy="" />
+        <Pie data={[]} dataKey="value" nameKey="name" cx="50%" cy="50%" />
         <RechartsTooltip />
       </PieChart>
       <BarChart width={100} height={100}>
-        <CartesianGrid />
-        <XAxis />
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="name" />
         <YAxis />
         <RechartsTooltip />
-        <Bar dataKey="" fill="" />
+        <Bar dataKey="value" fill="#8884d8" />
       </BarChart>
     </div>
   );

@@ -28,6 +28,8 @@ import TeamLeaderSettingsPage from "./pages/team-leader/SettingsPage";
 // Employee pages
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import EmployeeTasksPage from "./pages/employee/TasksPage";
+import EmployeeCoursesPage from "./pages/employee/CoursesPage";
+import EmployeeSettingsPage from "./pages/employee/SettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -64,7 +66,8 @@ const App = () => (
               <Route path="/employee" element={<MainLayout />}>
                 <Route index element={<EmployeeDashboard />} />
                 <Route path="tasks" element={<EmployeeTasksPage />} />
-                {/* Add other employee routes as needed */}
+                <Route path="courses" element={<EmployeeCoursesPage />} />
+                <Route path="settings" element={<EmployeeSettingsPage />} />
               </Route>
               
               <Route path="/" element={<LoginPage />} />
