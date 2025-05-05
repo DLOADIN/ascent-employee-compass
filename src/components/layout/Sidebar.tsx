@@ -7,7 +7,6 @@ import {
   Users, 
   FileText, 
   BookOpen, 
-  BriefcaseBusiness,
   Bell, 
   Settings,
   LogOut,
@@ -28,6 +27,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const adminLinks = [
     { icon: Home, label: "Dashboard", to: "/admin" },
     { icon: Users, label: "Employees", to: "/admin/employees" },
+    { icon: Users, label: "Team Leaders", to: "/admin/team-leaders" },
     { icon: Bell, label: "Notifications", to: "/admin/notifications" },
     { icon: Mail, label: "Email", to: "/admin/email" }, 
     { icon: Settings, label: "Settings", to: "/admin/settings" }
@@ -35,10 +35,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
 
   const teamLeaderLinks = [
     { icon: Home, label: "Dashboard", to: "/team-leader" },
-    { icon: Users, label: "Team", to: "/team-leader/team" },
     { icon: FileText, label: "Tasks", to: "/team-leader/tasks" },
     { icon: BookOpen, label: "Courses", to: "/team-leader/courses" },
-    { icon: BriefcaseBusiness, label: "Jobs", to: "/team-leader/jobs" },
     { icon: Settings, label: "Settings", to: "/team-leader/settings" }
   ];
 
@@ -46,7 +44,6 @@ export function Sidebar({ collapsed }: SidebarProps) {
     { icon: Home, label: "Dashboard", to: "/employee" },
     { icon: FileText, label: "Tasks", to: "/employee/tasks" },
     { icon: BookOpen, label: "Courses", to: "/employee/courses" },
-    { icon: BriefcaseBusiness, label: "Jobs", to: "/employee/jobs" },
     { icon: Settings, label: "Settings", to: "/employee/settings" }
   ];
 

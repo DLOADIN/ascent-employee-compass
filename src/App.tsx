@@ -14,13 +14,16 @@ import LoginPage from "./pages/LoginPage";
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import EmployeesPage from "./pages/admin/EmployeesPage";
-import NotificationsPage from "./pages/admin/NotificationsPage"; // New
-import EmailPage from "./pages/admin/EmailPage"; // New
-import SettingsPage from "./pages/admin/SettingsPage"; // New
+import TeamLeadersPage from "./pages/admin/TeamLeadersPage";
+import NotificationsPage from "./pages/admin/NotificationsPage";
+import EmailPage from "./pages/admin/EmailPage";
+import SettingsPage from "./pages/admin/SettingsPage";
 
 // Team Leader pages
 import TeamLeaderDashboard from "./pages/team-leader/TeamLeaderDashboard";
 import TeamLeaderTasksPage from "./pages/team-leader/TasksPage";
+import TeamLeaderCoursesPage from "./pages/team-leader/CoursesPage";
+import TeamLeaderSettingsPage from "./pages/team-leader/SettingsPage";
 
 // Employee pages
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
@@ -43,6 +46,7 @@ const App = () => (
               <Route path="/admin" element={<MainLayout />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="employees" element={<EmployeesPage />} />
+                <Route path="team-leaders" element={<TeamLeadersPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="email" element={<EmailPage />} />
                 <Route path="settings" element={<SettingsPage />} />
@@ -52,7 +56,8 @@ const App = () => (
               <Route path="/team-leader" element={<MainLayout />}>
                 <Route index element={<TeamLeaderDashboard />} />
                 <Route path="tasks" element={<TeamLeaderTasksPage />} />
-                {/* Add other team leader routes as needed */}
+                <Route path="courses" element={<TeamLeaderCoursesPage />} />
+                <Route path="settings" element={<TeamLeaderSettingsPage />} />
               </Route>
               
               {/* Employee Routes */}
