@@ -1,26 +1,67 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { AppProvider } from "@/context/AppContext";
+import { MainLayout } from "@/components/layout/MainLayout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import LoginPage from "./pages/LoginPage";
+
+// Admin pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+
+// Team Leader pages
+import TeamLeaderDashboard from "./pages/team-leader/TeamLeaderDashboard";
+import TeamLeaderTasksPage from "./pages/team-leader/TasksPage";
+
+// Employee pages
+import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
+import EmployeeTasksPage from "./pages/employee/TasksPage";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider defaultTheme="system">
+      <AppProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<MainLayout />}>
+                <Route index element={<AdminDashboard />} />
+                {/* Add other admin routes as needed */}
+              </Route>
+              
+              {/* Team Leader Routes */}
+              <Route path="/team-leader" element={<MainLayout />}>
+                <Route index element={<TeamLeaderDashboard />} />
+                <Route path="tasks" element={<TeamLeaderTasksPage />} />
+                {/* Add other team leader routes as needed */}
+              </Route>
+              
+              {/* Employee Routes */}
+              <Route path="/employee" element={<MainLayout />}>
+                <Route index element={<EmployeeDashboard />} />
+                <Route path="tasks" element={<EmployeeTasksPage />} />
+                {/* Add other employee routes as needed */}
+              </Route>
+              
+              <Route path="/" element={<LoginPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AppProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
