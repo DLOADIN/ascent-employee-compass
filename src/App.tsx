@@ -14,6 +14,9 @@ import LoginPage from "./pages/LoginPage";
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import EmployeesPage from "./pages/admin/EmployeesPage";
+import NotificationsPage from "./pages/admin/NotificationsPage"; // New
+import EmailPage from "./pages/admin/EmailPage"; // New
+import SettingsPage from "./pages/admin/SettingsPage"; // New
 
 // Team Leader pages
 import TeamLeaderDashboard from "./pages/team-leader/TeamLeaderDashboard";
@@ -40,7 +43,9 @@ const App = () => (
               <Route path="/admin" element={<MainLayout />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="employees" element={<EmployeesPage />} />
-                {/* Add other admin routes as needed */}
+                <Route path="notifications" element={<NotificationsPage />} />
+                <Route path="email" element={<EmailPage />} />
+                <Route path="settings" element={<SettingsPage />} />
               </Route>
               
               {/* Team Leader Routes */}

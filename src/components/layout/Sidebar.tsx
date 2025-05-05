@@ -10,7 +10,8 @@ import {
   BriefcaseBusiness,
   Bell, 
   Settings,
-  LogOut
+  LogOut,
+  Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -28,6 +29,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
     { icon: Home, label: "Dashboard", to: "/admin" },
     { icon: Users, label: "Employees", to: "/admin/employees" },
     { icon: Bell, label: "Notifications", to: "/admin/notifications" },
+    { icon: Mail, label: "Email", to: "/admin/email" }, 
     { icon: Settings, label: "Settings", to: "/admin/settings" }
   ];
 

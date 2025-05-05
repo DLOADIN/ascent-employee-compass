@@ -6,17 +6,30 @@ import { Header } from "./Header";
 import { useAppContext } from "@/context/AppContext";
 import { Navigate } from "react-router-dom";
 
-// Import recharts components with proper casing for JSX
+// Import recharts components with proper casing
 import {
   PieChart, Pie, Tooltip as RechartsTooltip,
   CartesianGrid, XAxis, YAxis, Bar, BarChart
 } from 'recharts';
 
-// This component ensures that we have the proper chart components available globally
+// This component ensures that the chart components are registered globally
 const ChartsRegistry = () => {
-  // Component is not rendered, just ensuring the imports are available
-  return null;
-}
+  return (
+    <div className="hidden">
+      <PieChart width={100} height={100}>
+        <Pie data={[]} dataKey="" nameKey="" cx="" cy="" />
+        <RechartsTooltip />
+      </PieChart>
+      <BarChart width={100} height={100}>
+        <CartesianGrid />
+        <XAxis />
+        <YAxis />
+        <RechartsTooltip />
+        <Bar dataKey="" fill="" />
+      </BarChart>
+    </div>
+  );
+};
 
 export function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -32,7 +45,7 @@ export function MainLayout() {
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Register chart components */}
+      {/* Register chart components - invisible but needed to fix JSX errors */}
       <ChartsRegistry />
       
       <Sidebar collapsed={sidebarCollapsed} />
