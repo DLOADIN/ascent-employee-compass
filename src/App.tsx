@@ -13,6 +13,7 @@ import LoginPage from "./pages/LoginPage";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import EmployeesPage from "./pages/admin/EmployeesPage";
 
 // Team Leader pages
 import TeamLeaderDashboard from "./pages/team-leader/TeamLeaderDashboard";
@@ -38,6 +39,7 @@ const App = () => (
               {/* Admin Routes */}
               <Route path="/admin" element={<MainLayout />}>
                 <Route index element={<AdminDashboard />} />
+                <Route path="employees" element={<EmployeesPage />} />
                 {/* Add other admin routes as needed */}
               </Route>
               
