@@ -116,12 +116,12 @@ export default function TeamLeaderDashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Actions</CardTitle>
           </CardHeader>
-          <CardContent className="flex space-x-2">
-            <Button variant="outline" size="sm" className="flex-1">
+          <CardContent className="grid grid-rows space-x-2">
+            <Button variant="outline" size="sm" className="flex-1 p-2">
               <Send className="mr-2 h-4 w-4" />
               Email Admin
             </Button>
-            <Button variant="outline" size="sm" className="flex-1">
+            <Button variant="outline" size="sm" className="flex-1 p-2">
               <BookOpen className="mr-2 h-4 w-4" />
               Recommend
             </Button>
