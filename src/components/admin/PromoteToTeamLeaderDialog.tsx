@@ -3,7 +3,7 @@ import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Department, User } from "@/types";
+import { Department, User, Skill, SkillLevel } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/context/AppContext";
 import { 
@@ -51,7 +51,7 @@ export function PromoteToTeamLeaderDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       experience: "",
-      skills: user.skills?.join(", ") || "",
+      skills: user.skills ? user.skills.map(skill => skill.name).join(", ") : "",
       description: user.description || "",
     },
   });
@@ -59,11 +59,18 @@ export function PromoteToTeamLeaderDialog({
   const onSubmit = (data: FormValues) => {
     setIsSubmitting(true);
     
+    // Convert skill strings to Skill objects
+    const skillObjects: Skill[] = data.skills.split(",").map((skillName, index) => ({
+      id: `skill-${index}-${Date.now()}`,
+      name: skillName.trim(),
+      level: "Intermediate" as SkillLevel
+    }));
+    
     // Update the user role to TeamLeader
     const updatedUser: User = {
       ...user,
       role: "TeamLeader",
-      skills: data.skills.split(",").map(skill => skill.trim()),
+      skills: skillObjects,
       description: data.description,
       experience: parseInt(data.experience),
     };

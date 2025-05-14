@@ -71,7 +71,7 @@ export function TeamLeaderDetailsDialog({
             <div className="flex flex-wrap gap-1">
               {user.skills && user.skills.length > 0 ? (
                 user.skills.map((skill, index) => (
-                  <Badge key={index} variant="outline">{skill}</Badge>
+                  <Badge key={index} variant="outline">{skill.name}</Badge>
                 ))
               ) : (
                 <span className="text-sm text-muted-foreground">No skills listed</span>
