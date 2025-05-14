@@ -1,0 +1,37 @@
+HR Evaluation Management System
+
+Departments:[IT,FINANCE,SALES,CUSTOMER-SERVICE],
+	   
+Admin(Human Resource)
+	role: Adding new employees(
+		Department, 
+		skill,
+		Skillset level(1, 2,3))
+		cv, experience_level, description, Phonenumber(Unique)
+	role:  Roles to employees,
+	role: Monitors Employee's login session
+	role: Recommendation on skills(Email) 
+	Dashboards: charts progress, Task progress
+	role: Assigns head of department
+	role: Profile, CRUD around employees
+	role: Notify users on internal jobs(Notifications)
+
+Employees: role: [IT,FINANCE,SALES,CUSTOMER-SERVICE],
+	   Dashboard: Progressions(Courses), Progression(Tasks)
+	   Courses:[IT,FINANCE,SALES,CUSTOMER-SERVICE],
+	   Tasks: Assigned Tasks + Deadline
+	   role:Updates Profile, Deletes Profile
+
+TeamLeaders: Dashboard: The worst and The Best Performing Employees(Tasks, Courses)
+	     Employees: Performance based on Tasks and Courses
+	     Departments: IT, FINANCE, SALES, CUSTOMER-SERVICE
+	     Role:Assigns tasks
+	     Email: (Emails an admin)
+
+Other Requirements
+ 1. Admin must have a page of returned employees asking to become team leaders(Receives the application & analyses all them and chooses the new teamleader)
+ 2. Recent Notifications need a filter by date 
+ 3. The Teamleader has to atleast provide a new document to the user for any new task(Make a research on Bytearray handling)
+
+
+PitchDeck: Demo + Convincing the client + QAs (10 minutes)
