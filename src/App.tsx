@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -31,6 +30,9 @@ import EmployeeTasksPage from "./pages/employee/TasksPage";
 import EmployeeCoursesPage from "./pages/employee/CoursesPage";
 import EmployeeSettingsPage from "./pages/employee/SettingsPage";
 
+// New routes for email pages
+import TeamLeaderEmailPage from "./pages/team-leader/EmailPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -60,6 +62,7 @@ const App = () => (
                 <Route path="tasks" element={<TeamLeaderTasksPage />} />
                 <Route path="courses" element={<TeamLeaderCoursesPage />} />
                 <Route path="settings" element={<TeamLeaderSettingsPage />} />
+                <Route path="email" element={<TeamLeaderEmailPage />} />
               </Route>
               
               {/* Employee Routes */}
@@ -68,6 +71,7 @@ const App = () => (
                 <Route path="tasks" element={<EmployeeTasksPage />} />
                 <Route path="courses" element={<EmployeeCoursesPage />} />
                 <Route path="settings" element={<EmployeeSettingsPage />} />
+                <Route path="email" element={<EmailPage />} />
               </Route>
               
               <Route path="/" element={<LoginPage />} />

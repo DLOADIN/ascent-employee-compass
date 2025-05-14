@@ -8,10 +8,11 @@ import { Slider } from "@/components/ui/slider";
 import { Plus, Edit, Trash2, Clock, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, 
-  DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+  DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 
 interface TaskBoardProps {
   tasks: Task[];
@@ -27,7 +28,8 @@ interface TaskProgressData {
 }
 
 export function TaskBoard({ tasks, canEdit, onEdit, onDelete }: TaskBoardProps) {
-  const { users } = useAppContext();
+  const { users, currentUser } = useAppContext();
+  const { toast } = useToast();
   
   const [todoTasks, setTodoTasks] = useState<Task[]>([]);
   const [inProgressTasks, setInProgressTasks] = useState<Task[]>([]);
@@ -37,6 +39,9 @@ export function TaskBoard({ tasks, canEdit, onEdit, onDelete }: TaskBoardProps) 
   const [progressValue, setProgressValue] = useState(0);
   const [progressNotes, setProgressNotes] = useState("");
   const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
+
+  // Determine if the current user can delete tasks (only team leaders and admins can delete)
+  const canDeleteTasks = currentUser?.role === "TeamLeader" || currentUser?.role === "Admin";
 
   useEffect(() => {
     setTodoTasks(tasks.filter(task => task.status === "Todo"));
@@ -89,7 +94,7 @@ export function TaskBoard({ tasks, canEdit, onEdit, onDelete }: TaskBoardProps) 
 
     // Add the task to the target list
     if (task) {
-      const updatedTask = { ...task, status: targetStatus };
+      const updatedTask: Task = { ...task, status: targetStatus };
       if (targetStatus === "Todo") {
         setTodoTasks([...todoTasks, updatedTask]);
       } else if (targetStatus === "In Progress") {
@@ -153,7 +158,7 @@ export function TaskBoard({ tasks, canEdit, onEdit, onDelete }: TaskBoardProps) 
     if (progress === 100) {
       const task = [...todoTasks, ...inProgressTasks].find(t => t.id === taskId);
       if (task && task.status !== "Completed") {
-        const updatedTask = { ...task, status: "Completed" };
+        const updatedTask: Task = { ...task, status: "Completed" };
         
         // Remove from original list
         if (task.status === "Todo") {
@@ -169,6 +174,12 @@ export function TaskBoard({ tasks, canEdit, onEdit, onDelete }: TaskBoardProps) 
         if (onEdit) {
           onEdit(updatedTask);
         }
+        
+        // Show success toast
+        toast({
+          title: "Task completed!",
+          description: "Your task has been moved to the completed column.",
+        });
       }
     }
   };
@@ -187,7 +198,7 @@ export function TaskBoard({ tasks, canEdit, onEdit, onDelete }: TaskBoardProps) 
       
       // If progress is 100%, update task status to Completed
       if (progressValue === 100 && selectedTask.status !== "Completed") {
-        const updatedTask = { ...selectedTask, status: "Completed" };
+        const updatedTask: Task = { ...selectedTask, status: "Completed" };
         
         // Remove from original list
         if (selectedTask.status === "Todo") {
@@ -206,7 +217,7 @@ export function TaskBoard({ tasks, canEdit, onEdit, onDelete }: TaskBoardProps) 
       }
       // If progress is > 0 but < 100%, update task status to In Progress
       else if (progressValue > 0 && progressValue < 100 && selectedTask.status !== "In Progress") {
-        const updatedTask = { ...selectedTask, status: "In Progress" };
+        const updatedTask: Task = { ...selectedTask, status: "In Progress" };
         
         // Remove from original list
         if (selectedTask.status === "Todo") {
@@ -223,6 +234,12 @@ export function TaskBoard({ tasks, canEdit, onEdit, onDelete }: TaskBoardProps) 
           onEdit(updatedTask);
         }
       }
+      
+      // Show success toast
+      toast({
+        title: "Progress updated",
+        description: `Task progress updated to ${progressValue}%`,
+      });
     }
     setIsProgressDialogOpen(false);
   };
@@ -252,17 +269,21 @@ export function TaskBoard({ tasks, canEdit, onEdit, onDelete }: TaskBoardProps) 
               >
                 <Edit className="h-4 w-4" />
               </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7 text-destructive" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onDelete) onDelete(task.id);
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              
+              {/* Only show delete button if user can delete tasks */}
+              {canDeleteTasks && onDelete && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7 text-destructive" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(task.id);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           )}
         </div>
