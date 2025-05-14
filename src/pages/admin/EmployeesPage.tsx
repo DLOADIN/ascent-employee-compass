@@ -17,14 +17,15 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { useToast } from "@/components/ui/use-toast";
-import { UserPlus, Search, Edit, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { UserPlus, Search, Edit, Trash2, UserCog } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { Department, SkillLevel, User, UserRole } from "@/types";
 import { AddEmployeeDialog } from "@/components/admin/AddEmployeeDialog";
 import { EditEmployeeDialog } from "@/components/admin/EditEmployeeDialog";
 import { EmployeeDetailsDialog } from "@/components/admin/EmployeeDetailsDialog";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { PromoteToTeamLeaderDialog } from "@/components/admin/PromoteToTeamLeaderDialog";
 
 const EmployeesPage = () => {
   const { toast } = useToast();
@@ -34,6 +35,7 @@ const EmployeesPage = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isPromoteDialogOpen, setIsPromoteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [roleFilter, setRoleFilter] = useState<UserRole | "All">("All");
   const [departmentFilter, setDepartmentFilter] = useState<Department | "All">("All");
@@ -64,6 +66,11 @@ const EmployeesPage = () => {
   const handleDeleteEmployee = (user: User) => {
     setSelectedUser(user);
     setIsConfirmDialogOpen(true);
+  };
+
+  const handlePromoteEmployee = (user: User) => {
+    setSelectedUser(user);
+    setIsPromoteDialogOpen(true);
   };
 
   const confirmDelete = () => {
@@ -163,6 +170,20 @@ const EmployeesPage = () => {
                       <TableCell className="hidden lg:table-cell">{user.phoneNumber}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          {user.role === "Employee" && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="bg-green-50 hover:bg-green-100 text-green-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePromoteEmployee(user);
+                              }}
+                              title="Promote to Team Leader"
+                            >
+                              <UserCog className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="icon"
@@ -218,6 +239,11 @@ const EmployeesPage = () => {
             title="Delete Employee"
             description={`Are you sure you want to delete ${selectedUser.name}? This action cannot be undone.`}
             onConfirm={confirmDelete}
+          />
+          <PromoteToTeamLeaderDialog
+            open={isPromoteDialogOpen}
+            onOpenChange={setIsPromoteDialogOpen}
+            user={selectedUser}
           />
         </>
       )}

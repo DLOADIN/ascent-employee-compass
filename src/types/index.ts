@@ -29,11 +29,13 @@ export interface Task {
   id: string;
   title: string;
   description: string;
+  documentation?: string; // Added documentation field
   assignedTo: string;
   assignedBy: string;
   status: "Todo" | "In Progress" | "Completed";
   deadline: Date;
   createdAt: Date;
+  progress?: number; // Added progress tracking
 }
 
 export interface Course {

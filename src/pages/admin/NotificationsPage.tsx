@@ -27,10 +27,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Bell, Trash2 } from "lucide-react";
+import { Bell, Calendar, Trash2, Filter } from "lucide-react";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Notification, Department } from "@/types";
-import { format } from "date-fns";
+import { format, isAfter, isBefore, startOfDay, subDays } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 const mockNotifications: Notification[] = [
   {
@@ -64,7 +67,41 @@ const NotificationsPage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<string | null>(null);
   
+  // Date filter states
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [dateFilterType, setDateFilterType] = useState<"all" | "today" | "week" | "month" | "custom">("all");
+  
   const { toast } = useToast();
+
+  // Filter notifications by date
+  const filteredNotifications = notifications.filter(notification => {
+    if (dateFilterType === "all") return true;
+    
+    const notificationDate = startOfDay(new Date(notification.createdAt));
+    const today = startOfDay(new Date());
+    
+    switch (dateFilterType) {
+      case "today":
+        return notificationDate.getTime() === today.getTime();
+      case "week":
+        const weekAgo = subDays(today, 7);
+        return isAfter(notificationDate, weekAgo) || notificationDate.getTime() === weekAgo.getTime();
+      case "month":
+        const monthAgo = subDays(today, 30);
+        return isAfter(notificationDate, monthAgo) || notificationDate.getTime() === monthAgo.getTime();
+      case "custom":
+        if (startDate && endDate) {
+          const start = startOfDay(startDate);
+          const end = startOfDay(endDate);
+          return (isAfter(notificationDate, start) || notificationDate.getTime() === start.getTime()) && 
+                 (isBefore(notificationDate, end) || notificationDate.getTime() === end.getTime());
+        }
+        return true;
+      default:
+        return true;
+    }
+  });
 
   const handleSendNotification = () => {
     if (!title.trim() || !message.trim()) {
@@ -112,6 +149,14 @@ const NotificationsPage = () => {
       });
     }
     setDeleteDialogOpen(false);
+  };
+
+  const handleDateFilterChange = (value: string) => {
+    setDateFilterType(value as "all" | "today" | "week" | "month" | "custom");
+    if (value !== "custom") {
+      setStartDate(undefined);
+      setEndDate(undefined);
+    }
   };
 
   return (
@@ -209,11 +254,66 @@ const NotificationsPage = () => {
             <CardDescription>
               View and manage recent notifications sent to employees
             </CardDescription>
+            <div className="flex flex-col sm:flex-row gap-2 mt-2">
+              <Select value={dateFilterType} onValueChange={handleDateFilterChange}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by date" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">Last 7 Days</SelectItem>
+                  <SelectItem value="month">Last 30 Days</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {dateFilterType === "custom" && (
+                <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn(!startDate && "text-muted-foreground")}>
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "PP") : "Start date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn(!endDate && "text-muted-foreground")}>
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "PP") : "End date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                        disabled={(date) => startDate ? isBefore(date, startDate) : false}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {notifications.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No notifications yet</p>
+              {filteredNotifications.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No notifications match your filter criteria</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -225,7 +325,7 @@ const NotificationsPage = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {notifications.map((notification) => (
+                    {filteredNotifications.map((notification) => (
                       <TableRow key={notification.id}>
                         <TableCell>
                           <div className="font-medium">{notification.title}</div>
