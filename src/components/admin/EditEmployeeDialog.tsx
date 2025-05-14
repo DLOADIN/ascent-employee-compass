@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -65,8 +64,8 @@ export function EditEmployeeDialog({ user, open, onOpenChange }: EditEmployeeDia
       phoneNumber: user.phoneNumber,
       experienceLevel: user.experienceLevel || 0,
       description: user.description || "",
-      skillName: user.skills?.[0]?.name || "",
-      skillLevel: user.skills?.[0]?.level || "Beginner",
+      skillName: user.skills && user.skills.length > 0 ? user.skills[0].name : "",
+      skillLevel: user.skills && user.skills.length > 0 ? user.skills[0].level : "Beginner",
       isActive: user.isActive,
     },
   });
@@ -81,8 +80,8 @@ export function EditEmployeeDialog({ user, open, onOpenChange }: EditEmployeeDia
       phoneNumber: user.phoneNumber,
       experienceLevel: user.experienceLevel || 0,
       description: user.description || "",
-      skillName: user.skills?.[0]?.name || "",
-      skillLevel: user.skills?.[0]?.level || "Beginner",
+      skillName: user.skills && user.skills.length > 0 ? user.skills[0].name : "",
+      skillLevel: user.skills && user.skills.length > 0 ? user.skills[0].level : "Beginner",
       isActive: user.isActive,
     });
   }, [user, form]);

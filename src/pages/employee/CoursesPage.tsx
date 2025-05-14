@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { Course } from "@/types";
@@ -186,10 +185,7 @@ export default function CoursesPage() {
                       <CardDescription>
                         <div className="flex justify-between items-center mt-1">
                           <span>Progress: {progress}%</span>
-                          <Badge variant={
-                            progress === 100 ? "success" : 
-                            progress > 50 ? "secondary" : "outline"
-                          }>
+                          <Badge variant="default">
                             {progress === 100 ? "Completed" : "In Progress"}
                           </Badge>
                         </div>

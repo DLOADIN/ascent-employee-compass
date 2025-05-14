@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAppContext } from "@/context/AppContext";
-import { BarChart, PieChart } from "recharts";
+import { BarChart, PieChart, Bar, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { FileText, BookOpen, Send, Award } from "lucide-react";
 
 export default function TeamLeaderDashboard() {
@@ -138,7 +138,7 @@ export default function TeamLeaderDashboard() {
           <CardContent>
             <div className="h-[300px] flex items-center justify-center">
               <PieChart width={300} height={300} data={taskData}>
-                <pie
+                <Pie
                   data={taskData}
                   cx="50%"
                   cy="50%"
@@ -148,7 +148,7 @@ export default function TeamLeaderDashboard() {
                   dataKey="value"
                   label
                 />
-                <tooltip />
+                <Tooltip />
               </PieChart>
             </div>
           </CardContent>
@@ -171,13 +171,13 @@ export default function TeamLeaderDashboard() {
                 }))}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
               >
-                <cartesianGrid strokeDasharray="3 3" />
-                <xAxis dataKey="name" />
-                <yAxis />
-                <tooltip />
-                <legend />
-                <bar dataKey="completed" name="Completed" fill="#8884d8" />
-                <bar dataKey="total" name="Total" fill="#82ca9d" />
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="completed" name="Completed" fill="#8884d8" />
+                <Bar dataKey="total" name="Total" fill="#82ca9d" />
               </BarChart>
             </div>
           </CardContent>

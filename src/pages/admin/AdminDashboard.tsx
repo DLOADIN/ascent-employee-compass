@@ -1,7 +1,6 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppContext } from "@/context/AppContext";
-import { BarChart, PieChart } from "recharts";
+import { BarChart, PieChart, Bar, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { User, Users, FileText, BookOpen } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -111,7 +110,7 @@ export default function AdminDashboard() {
                 { name: "Team Leaders", value: teamLeaders },
                 { name: "Employees", value: employees },
               ]}>
-                <pie
+                <Pie
                   data={[
                     { name: "Admins", value: admins },
                     { name: "Team Leaders", value: teamLeaders },
@@ -125,7 +124,7 @@ export default function AdminDashboard() {
                   dataKey="value"
                   label
                 />
-                <tooltip />
+                <Tooltip />
               </PieChart>
             </div>
           </CardContent>
@@ -144,11 +143,11 @@ export default function AdminDashboard() {
                 data={departmentData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
               >
-                <cartesianGrid strokeDasharray="3 3" />
-                <xAxis dataKey="name" />
-                <yAxis />
-                <tooltip />
-                <bar dataKey="value" fill="#8884d8" />
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#8884d8" />
               </BarChart>
             </div>
           </CardContent>
@@ -164,7 +163,7 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="h-[300px] flex items-center justify-center">
               <PieChart width={300} height={300} data={taskData}>
-                <pie
+                <Pie
                   data={taskData}
                   cx="50%"
                   cy="50%"
@@ -174,7 +173,7 @@ export default function AdminDashboard() {
                   dataKey="value"
                   label
                 />
-                <tooltip />
+                <Tooltip />
               </PieChart>
             </div>
           </CardContent>

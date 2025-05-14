@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { useAppContext } from "@/context/AppContext";
 import { Progress } from "@/components/ui/progress";
-import { PieChart, BarChart } from "recharts";
+import { BarChart, PieChart, Bar, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { FileText, BookOpen, BriefcaseBusiness, CheckCircle2, Clock } from "lucide-react";
 import { useState } from "react";
 
@@ -186,13 +186,13 @@ export default function EmployeeDashboard() {
                 data={progressData[selectedTime]}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
               >
-                <cartesianGrid strokeDasharray="3 3" />
-                <xAxis dataKey="name" />
-                <yAxis />
-                <tooltip />
-                <legend />
-                <bar dataKey="completed" name="Completed" fill="#8884d8" />
-                <bar dataKey="total" name="Total" fill="#82ca9d" />
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="completed" name="Completed" fill="#8884d8" />
+                <Bar dataKey="total" name="Total" fill="#82ca9d" />
               </BarChart>
             </div>
           </CardContent>
@@ -206,7 +206,7 @@ export default function EmployeeDashboard() {
           <CardContent>
             <div className="h-[300px] flex items-center justify-center">
               <PieChart width={300} height={300} data={taskStatusData}>
-                <pie
+                <Pie
                   data={taskStatusData}
                   cx="50%"
                   cy="50%"
@@ -216,7 +216,7 @@ export default function EmployeeDashboard() {
                   dataKey="value"
                   label
                 />
-                <tooltip />
+                <Tooltip />
               </PieChart>
             </div>
           </CardContent>

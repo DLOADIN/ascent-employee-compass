@@ -1,5 +1,5 @@
 
-import { User, Task, Course, JobOpportunity, Notification, LoginSession } from "@/types";
+import { User, Task, Course, JobOpportunity, Notification, LoginSession, Skill } from "@/types";
 
 export const mockUsers: User[] = [
   {
