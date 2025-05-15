@@ -1,7 +1,8 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import { User, Task, Course, JobOpportunity, Notification, LoginSession } from '@/types';
 import { mockUsers, mockTasks, mockCourses, mockJobOpportunities, mockNotifications, mockLoginSessions } from '@/data/mockData';
 import { useToast } from "@/components/ui/use-toast";
+import { login as authLogin, getCurrentUser, transformUserData } from '@/services/auth';
 
 interface AppContextType {
   currentUser: User | null;
@@ -11,7 +12,8 @@ interface AppContextType {
   jobOpportunities: JobOpportunity[];
   notifications: Notification[];
   loginSessions: LoginSession[];
-  login: (email: string, password: string) => boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateCurrentUser: (user: User) => void;
   addUser: (user: Omit<User, 'id' | 'isActive'>) => void;
@@ -38,33 +40,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [jobOpportunities, setJobOpportunities] = useState<JobOpportunity[]>(mockJobOpportunities);
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const [loginSessions, setLoginSessions] = useState<LoginSession[]>(mockLoginSessions);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = (email: string, password: string): boolean => {
-    const user = users.find(u => u.email === email);
-    if (user) {
-      setCurrentUser(user);
+  // Check for existing session on mount
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const userData = await getCurrentUser();
+          if (userData) {
+            const transformedUser = transformUserData(userData);
+            setCurrentUser(transformedUser);
+          }
+        } catch (error) {
+          localStorage.removeItem('token');
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initializeAuth();
+  }, []);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const response = await authLogin(email, password);
+      const { token, user } = response;
+      
+      // Store token
+      localStorage.setItem('token', token);
+      
+      // Transform and set user data
+      const transformedUser = transformUserData(user);
+      setCurrentUser(transformedUser);
+
       // Add a new login session
       const newSession: LoginSession = {
         id: Date.now().toString(),
-        userId: user.id,
+        userId: transformedUser.id,
         userAgent: navigator.userAgent,
         ipAddress: "127.0.0.1", // Placeholder
         loginTime: new Date(),
         isActive: true
       };
       setLoginSessions([...loginSessions, newSession]);
+      
       toast({
         title: "Login successful",
-        description: `Welcome back, ${user.name}!`,
+        description: `Welcome back, ${transformedUser.name}!`,
       });
       return true;
+    } catch (error) {
+      toast({
+        title: "Login failed",
+        description: "Invalid email or password",
+        variant: "destructive",
+      });
+      return false;
     }
-    toast({
-      title: "Login failed",
-      description: "Invalid email or password",
-      variant: "destructive",
-    });
-    return false;
   };
 
   const logout = () => {
@@ -77,6 +111,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       setLoginSessions(updatedSessions);
       setCurrentUser(null);
+      localStorage.removeItem('token');
       toast({
         title: "Logged out",
         description: "You have been logged out successfully",
@@ -249,6 +284,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     jobOpportunities,
     notifications,
     loginSessions,
+    isLoading,
     login,
     logout,
     updateCurrentUser,
@@ -264,6 +300,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     markNotificationAsRead,
     addNotification,
   };
+
+  if (isLoading) {
+    return null; // or a loading spinner
+  }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
