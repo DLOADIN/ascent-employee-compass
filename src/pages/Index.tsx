@@ -7,11 +7,25 @@ const Index = () => {
   const { currentUser } = useAppContext();
 
   useEffect(() => {
-    // If user is logged in, redirect to dashboard, otherwise to login
-    if (currentUser) {
-      navigate("/dashboard");
-    } else {
+    if (!currentUser) {
+      // If not authenticated, redirect to login
       navigate("/login");
+      return;
+    }
+
+    // Role-based redirections
+    switch (currentUser.role) {
+      case "Admin":
+        navigate("/admin");
+        break;
+      case "TeamLeader":
+        navigate("/team-leader");
+        break;
+      case "Employee":
+        navigate("/employee");
+        break;
+      default:
+        navigate("/login");
     }
   }, [navigate, currentUser]);
 

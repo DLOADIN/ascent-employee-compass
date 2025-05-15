@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { User, Task, Course, JobOpportunity, Notification, LoginSession } from '@/types';
 import { mockUsers, mockTasks, mockCourses, mockJobOpportunities, mockNotifications, mockLoginSessions } from '@/data/mockData';
 import { useToast } from "@/components/ui/use-toast";
-import { login as authLogin, getCurrentUser, transformUserData } from '@/services/auth';
+import { login as authLogin, transformUserData } from '@/services/auth';
 
 interface AppContextType {
   currentUser: User | null;
@@ -12,7 +12,6 @@ interface AppContextType {
   jobOpportunities: JobOpportunity[];
   notifications: Notification[];
   loginSessions: LoginSession[];
-  isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateCurrentUser: (user: User) => void;
@@ -40,47 +39,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [jobOpportunities, setJobOpportunities] = useState<JobOpportunity[]>(mockJobOpportunities);
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const [loginSessions, setLoginSessions] = useState<LoginSession[]>(mockLoginSessions);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing session on mount
+  // Check for existing auth on mount
   useEffect(() => {
-    const initializeAuth = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const userData = await getCurrentUser();
-          if (userData) {
-            const transformedUser = transformUserData(userData);
-            setCurrentUser(transformedUser);
-          }
-        } catch (error) {
-          localStorage.removeItem('token');
-        }
+    const token = localStorage.getItem('token');
+    const savedUser = localStorage.getItem('user');
+    if (token && savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        setCurrentUser(user);
+      } catch (error) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
       }
-      setIsLoading(false);
-    };
-
-    initializeAuth();
+    }
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const response = await authLogin(email, password);
-      const { token, user } = response;
+      const transformedUser = transformUserData(response.user);
       
-      // Store token
-      localStorage.setItem('token', token);
+      // Store auth data
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(transformedUser));
       
-      // Transform and set user data
-      const transformedUser = transformUserData(user);
       setCurrentUser(transformedUser);
-
+      
       // Add a new login session
       const newSession: LoginSession = {
         id: Date.now().toString(),
         userId: transformedUser.id,
         userAgent: navigator.userAgent,
-        ipAddress: "127.0.0.1", // Placeholder
+        ipAddress: "127.0.0.1",
         loginTime: new Date(),
         isActive: true
       };
@@ -90,6 +81,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         title: "Login successful",
         description: `Welcome back, ${transformedUser.name}!`,
       });
+      
       return true;
     } catch (error) {
       toast({
@@ -111,7 +103,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       setLoginSessions(updatedSessions);
       setCurrentUser(null);
+      
+      // Clear auth data
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
       toast({
         title: "Logged out",
         description: "You have been logged out successfully",
@@ -284,7 +280,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     jobOpportunities,
     notifications,
     loginSessions,
-    isLoading,
     login,
     logout,
     updateCurrentUser,
@@ -300,10 +295,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     markNotificationAsRead,
     addNotification,
   };
-
-  if (isLoading) {
-    return null; // or a loading spinner
-  }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
