@@ -1,10 +1,11 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAppContext } from "@/context/AppContext";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -52,9 +53,11 @@ const securityFormSchema = z.object({
 type SecurityFormValues = z.infer<typeof securityFormSchema>;
 
 const SettingsPage = () => {
-  const { currentUser, updateCurrentUser } = useAppContext();
+  const { currentUser, updateCurrentUser, logout } = useAppContext();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -76,48 +79,100 @@ const SettingsPage = () => {
     },
   });
 
-  const onProfileSubmit = (values: ProfileFormValues) => {
-    if (currentUser) {
-      updateCurrentUser({
-        ...currentUser,
-        ...values,
-      });
-      
+  const onProfileSubmit = async (values: ProfileFormValues) => {
+    setIsUpdating(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        `http://localhost:5000/api/users/${currentUser?.id}`,
+        values,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.user) {
+        updateCurrentUser(response.data.user);
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been updated successfully.",
+        });
+      }
+    } catch (error: any) {
       toast({
-        title: "Profile Updated",
-        description: "Your profile has been updated successfully.",
+        title: "Update Failed",
+        description: error.response?.data?.message || "Failed to update profile",
+        variant: "destructive",
       });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  const onSecuritySubmit = (values: SecurityFormValues) => {
-    // In a real app, this would call an API to update the password
-    // For now, we'll just simulate success
-    
-    toast({
-      title: "Password Updated",
-      description: "Your password has been updated successfully.",
-    });
-    
-    securityForm.reset({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+  const onSecuritySubmit = async (values: SecurityFormValues) => {
+    setIsUpdating(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `http://localhost:5000/api/users/${currentUser?.id}/password`,
+        {
+          currentPassword: values.currentPassword,
+          newPassword: values.newPassword,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      toast({
+        title: "Password Updated",
+        description: "Your password has been updated successfully.",
+      });
+      
+      securityForm.reset({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Update Failed",
+        description: error.response?.data?.message || "Failed to update password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  const handleDeleteAccount = () => {
-    // In a real app, this would call an API to delete the account
-    // For now, we'll just simulate success
-    
-    toast({
-      title: "Account Deleted",
-      description: "Your account has been deleted successfully. You will be logged out.",
-      variant: "destructive",
-    });
-    
-    // In a real app, this would redirect to login page after account deletion
-    setIsDeleteDialogOpen(false);
+  const handleDeleteAccount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(
+        `http://localhost:5000/api/users/${currentUser?.id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been deleted successfully. You will be logged out.",
+        variant: "destructive",
+      });
+      
+      // Logout and redirect to login page
+      logout();
+      navigate('/login');
+    } catch (error: any) {
+      toast({
+        title: "Delete Failed",
+        description: error.response?.data?.message || "Failed to delete account",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   if (!currentUser) {
@@ -236,7 +291,9 @@ const SettingsPage = () => {
                   )}
                 />
 
-                <Button type="submit" className="w-full">Update Profile</Button>
+                <Button type="submit" className="w-full" disabled={isUpdating}>
+                  {isUpdating ? "Updating..." : "Update Profile"}
+                </Button>
               </form>
             </Form>
           </CardContent>
@@ -299,7 +356,9 @@ const SettingsPage = () => {
                     )}
                   />
 
-                  <Button type="submit" className="w-full">Update Password</Button>
+                  <Button type="submit" className="w-full" disabled={isUpdating}>
+                    {isUpdating ? "Updating..." : "Update Password"}
+                  </Button>
                 </form>
               </Form>
             </CardContent>
@@ -321,6 +380,7 @@ const SettingsPage = () => {
                 variant="destructive" 
                 onClick={() => setIsDeleteDialogOpen(true)}
                 className="w-full"
+                disabled={isUpdating}
               >
                 Delete Account
               </Button>

@@ -18,6 +18,7 @@ export interface LoginResponse {
     profile_image_url: string | null;
     is_active: boolean;
   };
+  redirect?: string;
 }
 
 export const login = async (email: string, password: string): Promise<LoginResponse> => {

@@ -140,12 +140,22 @@ def login():
         ''', (user['id'], request.user_agent.string, request.remote_addr))
         conn.commit()
 
+        # Generate JWT token with role information
         token = jwt.encode({
             'user_id': user['id'],
+            'email': user['email'],
+            'role': user['role'],
             'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1)
         }, app.config['JWT_SECRET_KEY'], algorithm='HS256')
 
-        logger.info(f"Successful login for user {user['email']}")
+        # Determine redirect URL based on role
+        redirect_url = {
+            'Admin': '/admin',
+            'TeamLeader': '/team-leader',
+            'Employee': '/employee'
+        }.get(user['role'], '/login')
+
+        logger.info(f"Successful login for user {user['email']} with role {user['role']}")
 
         valid_departments = ['IT', 'Finance', 'Sales', 'Customer-Service']
         department = user['department'] if user['department'] in valid_departments else 'IT'
@@ -164,7 +174,8 @@ def login():
                 'description': user['description'],
                 'profileImage': user['profile_image_url'],
                 'isActive': bool(user['is_active'])
-            }
+            },
+            'redirect': redirect_url
         })
 
     except Exception as e:
@@ -552,6 +563,110 @@ def get_login_sessions(current_user_id):
     except Exception as e:
         logger.error(f"Error fetching login sessions: {str(e)}")
         return jsonify({'message': 'Error fetching login sessions'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/admin/dashboard-stats', methods=['GET'])
+@token_required
+def get_dashboard_stats(current_user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Check if user is admin
+        cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+        current_user = cursor.fetchone()
+        if current_user['role'] != 'Admin':
+            return jsonify({'message': 'Unauthorized'}), 403
+
+        # Get user stats
+        cursor.execute('''
+            SELECT 
+                COUNT(*) as total_users,
+                SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_users,
+                SUM(CASE WHEN role = 'Admin' THEN 1 ELSE 0 END) as admins,
+                SUM(CASE WHEN role = 'TeamLeader' THEN 1 ELSE 0 END) as team_leaders,
+                SUM(CASE WHEN role = 'Employee' THEN 1 ELSE 0 END) as employees
+            FROM users
+        ''')
+        user_stats = cursor.fetchone()
+
+        # Get task stats
+        cursor.execute('''
+            SELECT 
+                COUNT(*) as total_tasks,
+                SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) as completed_tasks,
+                SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) as in_progress_tasks,
+                SUM(CASE WHEN status = 'Todo' THEN 1 ELSE 0 END) as todo_tasks
+            FROM tasks
+        ''')
+        task_stats = cursor.fetchone()
+
+        # Get department stats
+        cursor.execute('''
+            SELECT department, COUNT(*) as count
+            FROM users
+            WHERE department IS NOT NULL
+            GROUP BY department
+        ''')
+        department_stats = cursor.fetchall()
+
+        # Get active sessions
+        cursor.execute('SELECT COUNT(*) as count FROM login_sessions WHERE is_active = 1')
+        active_sessions = cursor.fetchone()
+
+        # Get course count
+        cursor.execute('SELECT COUNT(*) as count FROM courses')
+        course_count = cursor.fetchone()
+
+        # Get recent sessions with user info
+        cursor.execute('''
+            SELECT ls.id, ls.login_time, ls.is_active, u.name as user_name
+            FROM login_sessions ls
+            JOIN users u ON ls.user_id = u.id
+            ORDER BY ls.login_time DESC
+            LIMIT 5
+        ''')
+        recent_sessions = cursor.fetchall()
+
+        stats = {
+            'totalUsers': user_stats['total_users'],
+            'activeUsers': user_stats['active_users'],
+            'totalTasks': task_stats['total_tasks'],
+            'completedTasks': task_stats['completed_tasks'],
+            'totalCourses': course_count['count'],
+            'activeSessions': active_sessions['count'],
+            'departmentStats': [
+                {'name': stat['department'], 'value': stat['count']}
+                for stat in department_stats
+            ],
+            'taskStats': [
+                {'name': 'Completed', 'value': task_stats['completed_tasks']},
+                {'name': 'In Progress', 'value': task_stats['in_progress_tasks']},
+                {'name': 'Todo', 'value': task_stats['todo_tasks']},
+            ],
+            'roleStats': [
+                {'name': 'Admins', 'value': user_stats['admins']},
+                {'name': 'Team Leaders', 'value': user_stats['team_leaders']},
+                {'name': 'Employees', 'value': user_stats['employees']},
+            ],
+            'recentSessions': [
+                {
+                    'id': str(session['id']),
+                    'userName': session['user_name'],
+                    'loginTime': session['login_time'].isoformat(),
+                    'isActive': bool(session['is_active'])
+                }
+                for session in recent_sessions
+            ]
+        }
+
+        return jsonify(stats)
+
+    except Exception as e:
+        logger.error(f"Error fetching dashboard stats: {str(e)}")
+        return jsonify({'message': 'Error fetching dashboard stats'}), 500
     finally:
         cursor.close()
         conn.close()

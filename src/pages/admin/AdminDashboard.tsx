@@ -1,34 +1,49 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppContext } from "@/context/AppContext";
 import { BarChart, PieChart, Bar, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { User, Users, FileText, BookOpen } from "lucide-react";
+import axios from "axios";
+
+interface DashboardStats {
+  totalUsers: number;
+  activeUsers: number;
+  totalTasks: number;
+  completedTasks: number;
+  totalCourses: number;
+  activeSessions: number;
+  departmentStats: { name: string; value: number }[];
+  taskStats: { name: string; value: number }[];
+  roleStats: { name: string; value: number }[];
+  recentSessions?: { id: string; userName: string; loginTime: string; isActive: boolean }[];
+}
 
 export default function AdminDashboard() {
-  const { users, tasks, courses, loginSessions } = useAppContext();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { currentUser } = useAppContext();
 
-  const activeUsers = users.filter(user => user.isActive).length;
-  const admins = users.filter(user => user.role === "Admin").length;
-  const teamLeaders = users.filter(user => user.role === "TeamLeader").length;
-  const employees = users.filter(user => user.role === "Employee").length;
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:5000/api/admin/dashboard-stats', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setStats(response.data);
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const completedTasks = tasks.filter(task => task.status === "Completed").length;
-  const inProgressTasks = tasks.filter(task => task.status === "In Progress").length;
-  const todoTasks = tasks.filter(task => task.status === "Todo").length;
+    fetchDashboardStats();
+  }, []);
 
-  const departmentData = [
-    { name: "IT", value: users.filter(user => user.department === "IT").length },
-    { name: "Finance", value: users.filter(user => user.department === "Finance").length },
-    { name: "Sales", value: users.filter(user => user.department === "Sales").length },
-    { name: "Customer-Service", value: users.filter(user => user.department === "Customer-Service").length },
-  ];
-
-  const taskData = [
-    { name: "Completed", value: completedTasks },
-    { name: "In Progress", value: inProgressTasks },
-    { name: "Todo", value: todoTasks },
-  ];
-
-  const activeSessions = loginSessions.filter(session => session.isActive).length;
+  if (loading || !stats) {
+    return <div>Loading dashboard data...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -42,11 +57,11 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold">{users.length}</div>
+              <div className="text-2xl font-bold">{stats.totalUsers}</div>
               <Users className="h-6 w-6 text-muted-foreground" />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              {activeUsers} active users
+              {stats.activeUsers} active users
             </p>
           </CardContent>
         </Card>
@@ -57,7 +72,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold">{activeSessions}</div>
+              <div className="text-2xl font-bold">{stats.activeSessions}</div>
               <User className="h-6 w-6 text-muted-foreground" />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
@@ -72,11 +87,11 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold">{tasks.length}</div>
+              <div className="text-2xl font-bold">{stats.totalTasks}</div>
               <FileText className="h-6 w-6 text-muted-foreground" />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              {completedTasks} completed tasks
+              {stats.completedTasks} completed tasks
             </p>
           </CardContent>
         </Card>
@@ -87,7 +102,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold">{courses.length}</div>
+              <div className="text-2xl font-bold">{stats.totalCourses}</div>
               <BookOpen className="h-6 w-6 text-muted-foreground" />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
@@ -105,17 +120,9 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px] flex items-center justify-center">
-              <PieChart width={300} height={300} data={[
-                { name: "Admins", value: admins },
-                { name: "Team Leaders", value: teamLeaders },
-                { name: "Employees", value: employees },
-              ]}>
+              <PieChart width={300} height={300}>
                 <Pie
-                  data={[
-                    { name: "Admins", value: admins },
-                    { name: "Team Leaders", value: teamLeaders },
-                    { name: "Employees", value: employees },
-                  ]}
+                  data={stats.roleStats}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -125,6 +132,7 @@ export default function AdminDashboard() {
                   label
                 />
                 <Tooltip />
+                <Legend />
               </PieChart>
             </div>
           </CardContent>
@@ -140,7 +148,7 @@ export default function AdminDashboard() {
               <BarChart
                 width={400}
                 height={300}
-                data={departmentData}
+                data={stats.departmentStats}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
@@ -162,9 +170,9 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px] flex items-center justify-center">
-              <PieChart width={300} height={300} data={taskData}>
+              <PieChart width={300} height={300}>
                 <Pie
-                  data={taskData}
+                  data={stats.taskStats}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -174,6 +182,7 @@ export default function AdminDashboard() {
                   label
                 />
                 <Tooltip />
+                <Legend />
               </PieChart>
             </div>
           </CardContent>
@@ -184,38 +193,32 @@ export default function AdminDashboard() {
             <CardTitle>Recent Login Sessions</CardTitle>
             <CardDescription>Latest user activities</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="max-h-[300px] overflow-y-auto">
             <div className="space-y-4">
-              {loginSessions
-                .sort((a, b) => b.loginTime.getTime() - a.loginTime.getTime())
-                .slice(0, 5)
-                .map((session) => {
-                  const user = users.find((user) => user.id === session.userId);
-                  return (
-                    <div
-                      key={session.id}
-                      className="flex items-center justify-between border-b pb-2 last:border-0"
+              {stats.recentSessions?.map((session) => (
+                <div
+                  key={session.id}
+                  className="flex items-center justify-between border-b pb-2 last:border-0"
+                >
+                  <div>
+                    <p className="font-medium">{session.userName}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(session.loginTime).toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                        session.isActive
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                          : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100"
+                      }`}
                     >
-                      <div>
-                        <p className="font-medium">{user?.name || "Unknown"}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {session.loginTime.toLocaleString()}
-                        </p>
-                      </div>
-                      <div>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                            session.isActive
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-                              : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100"
-                          }`}
-                        >
-                          {session.isActive ? "Online" : "Offline"}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+                      {session.isActive ? "Online" : "Offline"}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

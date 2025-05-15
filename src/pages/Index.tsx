@@ -7,27 +7,35 @@ const Index = () => {
   const { currentUser } = useAppContext();
 
   useEffect(() => {
-    if (!currentUser) {
-      // If not authenticated, redirect to login
-      navigate("/login");
+    // Check if we have a token but no current user (still loading)
+    const token = localStorage.getItem('token');
+    if (!currentUser && !token) {
+      navigate("/");
       return;
     }
 
-    // Role-based redirections
-    switch (currentUser.role) {
-      case "Admin":
-        navigate("/admin");
-        break;
-      case "TeamLeader":
-        navigate("/team-leader");
-        break;
-      case "Employee":
-        navigate("/employee");
-        break;
-      default:
-        navigate("/login");
+    // If we have a currentUser, handle role-based navigation
+    if (currentUser) {
+      switch (currentUser.role) {
+        case "Admin":
+          navigate("/admin");
+          break;
+        case "TeamLeader":
+          navigate("/team-leader");
+          break;
+        case "Employee":
+          navigate("/employee");
+          break;
+        default:
+          navigate("/login");
+      }
     }
   }, [navigate, currentUser]);
+
+  // Show loading state while checking authentication
+  if (!currentUser && localStorage.getItem('token')) {
+    return <div>Loading...</div>;
+  }
 
   return null;
 };

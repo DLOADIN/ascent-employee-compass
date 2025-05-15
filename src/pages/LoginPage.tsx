@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -43,37 +42,19 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
+  const onSubmit = async (data: LoginFormValues) => {
     setIsLoggingIn(true);
-
-    // Simulate a small delay for login
-    setTimeout(() => {
-      const success = login(data.email, data.password);
-
-      if (success) {
-        // Check the email to determine where to redirect
-        const user = DEFAULT_LOGINS.find((u) => u.email === data.email);
-        if (user) {
-          switch (user.role) {
-            case "Admin":
-              navigate("/admin");
-              break;
-            case "TeamLeader":
-              navigate("/team-leader");
-              break;
-            case "Employee":
-              navigate("/employee");
-              break;
-            default:
-              navigate("/");
-          }
-        } else {
-          navigate("/");
-        }
+    try {
+      const response = await login(data.email, data.password);
+      if (response.success) {
+        // Navigate to the redirect URL provided by the backend
+        navigate(response.redirect || "/");
       }
-      
+    } catch (error) {
+      console.error("Login error:", error);
+    } finally {
       setIsLoggingIn(false);
-    }, 1000);
+    }
   };
 
   return (

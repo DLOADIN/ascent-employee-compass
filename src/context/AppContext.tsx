@@ -12,7 +12,7 @@ interface AppContextType {
   jobOpportunities: JobOpportunity[];
   notifications: Notification[];
   loginSessions: LoginSession[];
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; redirect?: string }>;
   logout: () => void;
   updateCurrentUser: (user: User) => void;
   addUser: (user: Omit<User, 'id' | 'isActive'>) => void;
@@ -48,14 +48,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const user = JSON.parse(savedUser);
         setCurrentUser(user);
+        
+        // Add a new login session if one doesn't exist
+        const existingSession = loginSessions.find(
+          session => session.userId === user.id && session.isActive
+        );
+        
+        if (!existingSession) {
+          const newSession: LoginSession = {
+            id: Date.now().toString(),
+            userId: user.id,
+            userAgent: navigator.userAgent,
+            ipAddress: "127.0.0.1",
+            loginTime: new Date(),
+            isActive: true
+          };
+          setLoginSessions([...loginSessions, newSession]);
+        }
       } catch (error) {
+        console.error('Error restoring authentication state:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }
     }
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; redirect?: string }> => {
     try {
       const response = await authLogin(email, password);
       const transformedUser = transformUserData(response.user);
@@ -82,14 +100,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         description: `Welcome back, ${transformedUser.name}!`,
       });
       
-      return true;
+      return { success: true, redirect: response.redirect };
     } catch (error) {
-      toast({
-        title: "Login failed",
-        description: "Invalid email or password",
-        variant: "destructive",
-      });
-      return false;
+    toast({
+      title: "Login failed",
+      description: "Invalid email or password",
+      variant: "destructive",
+    });
+      return { success: false };
     }
   };
 
