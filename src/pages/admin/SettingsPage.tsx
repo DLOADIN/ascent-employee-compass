@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { User } from "@/types";
 import {
   Card,
   CardContent,
@@ -29,6 +30,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+interface UpdateProfileResponse {
+  message: string;
+  user: User;
+}
+
+interface UpdatePasswordResponse {
+  message: string;
+}
+
+interface DeleteAccountResponse {
+  message: string;
+}
 
 // Form schema
 const profileFormSchema = z.object({
@@ -83,7 +97,7 @@ const SettingsPage = () => {
     setIsUpdating(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put(
+      const { data } = await axios.put<UpdateProfileResponse>(
         `http://localhost:5000/api/users/${currentUser?.id}`,
         values,
         {
@@ -91,11 +105,11 @@ const SettingsPage = () => {
         }
       );
 
-      if (response.data.user) {
-        updateCurrentUser(response.data.user);
+      if (data.user) {
+        updateCurrentUser(data.user);
         toast({
           title: "Profile Updated",
-          description: "Your profile has been updated successfully.",
+          description: data.message || "Your profile has been updated successfully.",
         });
       }
     } catch (error: any) {
@@ -113,7 +127,7 @@ const SettingsPage = () => {
     setIsUpdating(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.put(
+      const { data } = await axios.put<UpdatePasswordResponse>(
         `http://localhost:5000/api/users/${currentUser?.id}/password`,
         {
           currentPassword: values.currentPassword,
@@ -126,7 +140,7 @@ const SettingsPage = () => {
       
       toast({
         title: "Password Updated",
-        description: "Your password has been updated successfully.",
+        description: data.message || "Your password has been updated successfully.",
       });
       
       securityForm.reset({
@@ -148,7 +162,7 @@ const SettingsPage = () => {
   const handleDeleteAccount = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(
+      const { data } = await axios.delete<DeleteAccountResponse>(
         `http://localhost:5000/api/users/${currentUser?.id}`,
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -157,7 +171,7 @@ const SettingsPage = () => {
       
       toast({
         title: "Account Deleted",
-        description: "Your account has been deleted successfully. You will be logged out.",
+        description: data.message || "Your account has been deleted successfully. You will be logged out.",
         variant: "destructive",
       });
       
