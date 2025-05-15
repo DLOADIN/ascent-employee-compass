@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Card, 
   CardContent, 
@@ -25,40 +24,107 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { AddTeamLeaderDialog } from "@/components/admin/AddTeamLeaderDialog";
 import { EditTeamLeaderDialog } from "@/components/admin/EditTeamLeaderDialog";
 import { TeamLeaderDetailsDialog } from "@/components/admin/TeamLeaderDetailsDialog";
+import axios from "axios";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const TeamLeadersPage = () => {
   const { toast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { users } = useAppContext();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('search') || "";
+  });
+  const [departmentFilter, setDepartmentFilter] = useState<Department | "All">(() => {
+    const params = new URLSearchParams(location.search);
+    return (params.get('department') as Department | "All") || "All";
+  });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [departmentFilter, setDepartmentFilter] = useState<Department | "All">("All");
+  const [teamLeaders, setTeamLeaders] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Filter team leaders
-  const teamLeaders = users.filter(user => user.role === "TeamLeader");
-  
-  const filteredTeamLeaders = teamLeaders.filter((user) => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDepartment = departmentFilter === "All" || user.department === departmentFilter;
-    return matchesSearch && matchesDepartment;
-  });
+  useEffect(() => {
+    fetchTeamLeaders();
+  }, []);
 
-  const handleAddTeamLeader = () => {
-    setIsAddDialogOpen(true);
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchTerm) params.set('search', searchTerm);
+    if (departmentFilter !== "All") params.set('department', departmentFilter);
+    navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+  }, [searchTerm, departmentFilter, navigate, location.pathname]);
+
+  const fetchTeamLeaders = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const { data } = await axios.get<User[]>('http://localhost:5000/api/users', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTeamLeaders(data.filter(user => user.role === "TeamLeader"));
+    } catch (error: any) {
+      console.error('Error fetching team leaders:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to fetch team leaders",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditTeamLeader = (user: User) => {
-    setSelectedUser(user);
-    setIsEditDialogOpen(true);
+  const handleAddTeamLeader = async (formData: Omit<User, 'id'>) => {
+    try {
+      const token = localStorage.getItem('token');
+      const { data } = await axios.post<User>(
+        'http://localhost:5000/api/users',
+        { ...formData, role: 'TeamLeader' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setTeamLeaders(prev => [...prev, data]);
+      setIsAddDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Team leader added successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to add team leader",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleViewDetails = (user: User) => {
-    setSelectedUser(user);
-    setIsDetailsDialogOpen(true);
+  const handleEditTeamLeader = async (userId: string, updatedData: Partial<User>) => {
+    try {
+      const token = localStorage.getItem('token');
+      const { data } = await axios.put<User>(
+        `http://localhost:5000/api/users/${userId}`,
+        { ...updatedData, role: 'TeamLeader' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setTeamLeaders(prev => prev.map(tl => tl.id === userId ? data : tl));
+      setIsEditDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Team leader updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to update team leader",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteTeamLeader = (user: User) => {
@@ -66,22 +132,52 @@ const TeamLeadersPage = () => {
     setIsConfirmDialogOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (selectedUser) {
-      // In a real app, this would call an API
-      toast({
-        title: "Team Leader Deleted",
-        description: `${selectedUser.name} has been removed from the system.`,
+  const confirmDelete = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:5000/api/users/${selectedUser.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
+
+      setTeamLeaders(prev => prev.filter(tl => tl.id !== selectedUser.id));
       setIsConfirmDialogOpen(false);
+      toast({
+        title: "Success",
+        description: `${selectedUser.name} has been removed from the system`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to delete team leader",
+        variant: "destructive",
+      });
     }
   };
+
+  const handleViewDetails = (user: User) => {
+    setSelectedUser(user);
+    setIsDetailsDialogOpen(true);
+  };
+
+  // Filter team leaders
+  const filteredTeamLeaders = teamLeaders.filter((user) => {
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDepartment = departmentFilter === "All" || user.department === departmentFilter;
+    return matchesSearch && matchesDepartment;
+  });
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-48">Loading team leaders...</div>;
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-3xl font-bold">Team Leaders Management</h2>
-        <Button onClick={handleAddTeamLeader} className="sm:w-auto w-full">
+        <Button onClick={() => setIsAddDialogOpen(true)} className="sm:w-auto w-full">
           <UserPlus className="mr-2 h-4 w-4" />
           Add Team Leader
         </Button>
@@ -156,7 +252,8 @@ const TeamLeadersPage = () => {
                             size="icon"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleEditTeamLeader(user);
+                              setSelectedUser(user);
+                              setIsEditDialogOpen(true);
                             }}
                           >
                             <Edit className="h-4 w-4" />
@@ -186,6 +283,7 @@ const TeamLeadersPage = () => {
       <AddTeamLeaderDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
+        onSubmit={handleAddTeamLeader}
       />
 
       {selectedUser && (
@@ -194,6 +292,7 @@ const TeamLeadersPage = () => {
             open={isEditDialogOpen}
             onOpenChange={setIsEditDialogOpen}
             user={selectedUser}
+            onSubmit={(data) => handleEditTeamLeader(selectedUser.id, data)}
           />
           <TeamLeaderDetailsDialog
             open={isDetailsDialogOpen}

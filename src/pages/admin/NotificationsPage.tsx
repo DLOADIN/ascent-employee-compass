@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -34,6 +33,7 @@ import { format, isAfter, isBefore, startOfDay, subDays } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import axios from "axios";
 
 const mockNotifications: Notification[] = [
   {
@@ -59,7 +59,8 @@ const mockNotifications: Notification[] = [
 ];
 
 const NotificationsPage = () => {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [department, setDepartment] = useState<Department | "all">("all");
@@ -73,6 +74,29 @@ const NotificationsPage = () => {
   const [dateFilterType, setDateFilterType] = useState<"all" | "today" | "week" | "month" | "custom">("all");
   
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const { data } = await axios.get<Notification[]>('http://localhost:5000/api/notifications', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotifications(data);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch notifications",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter notifications by date
   const filteredNotifications = notifications.filter(notification => {
@@ -103,7 +127,7 @@ const NotificationsPage = () => {
     }
   });
 
-  const handleSendNotification = () => {
+  const handleSendNotification = async () => {
     if (!title.trim() || !message.trim()) {
       toast({
         title: "Error",
@@ -113,26 +137,41 @@ const NotificationsPage = () => {
       return;
     }
 
-    const newNotification: Notification = {
-      id: `notification-${Date.now()}`,
-      title,
-      message,
-      userId: department === "all" ? "all" : `all-${department}`,
-      isRead: false,
-      createdAt: new Date(),
-      type: notificationType,
-    };
+    try {
+      const token = localStorage.getItem('token');
+      const { data } = await axios.post<Notification>(
+        'http://localhost:5000/api/notifications',
+        {
+          title,
+          message,
+          department: department === "all" ? null : department,
+          type: notificationType,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
 
-    setNotifications([newNotification, ...notifications]);
-    setTitle("");
-    setMessage("");
-    setDepartment("all");
-    setNotificationType("general");
+      // Update notifications list
+      setNotifications([data, ...notifications]);
+      
+      // Reset form
+      setTitle("");
+      setMessage("");
+      setDepartment("all");
+      setNotificationType("general");
 
-    toast({
-      title: "Success",
-      description: "Notification sent successfully",
-    });
+      toast({
+        title: "Success",
+        description: "Notification sent successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to send notification",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteClick = (id: string) => {
@@ -140,15 +179,29 @@ const NotificationsPage = () => {
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (selectedNotification) {
-      setNotifications(notifications.filter(n => n.id !== selectedNotification));
-      toast({
-        title: "Success",
-        description: "Notification deleted successfully",
-      });
+      try {
+        const token = localStorage.getItem('token');
+        await axios.delete(`http://localhost:5000/api/notifications/${selectedNotification}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        setNotifications(notifications.filter(n => n.id !== selectedNotification));
+        toast({
+          title: "Success",
+          description: "Notification deleted successfully",
+        });
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message || "Failed to delete notification",
+          variant: "destructive",
+        });
+      } finally {
+        setDeleteDialogOpen(false);
+      }
     }
-    setDeleteDialogOpen(false);
   };
 
   const handleDateFilterChange = (value: string) => {
@@ -158,6 +211,10 @@ const NotificationsPage = () => {
       setEndDate(undefined);
     }
   };
+
+  if (loading) {
+    return <div>Loading notifications...</div>;
+  }
 
   return (
     <div className="space-y-6">

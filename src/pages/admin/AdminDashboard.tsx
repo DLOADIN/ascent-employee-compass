@@ -196,28 +196,28 @@ export default function AdminDashboard() {
           <CardContent className="max-h-[300px] overflow-y-auto">
             <div className="space-y-4">
               {stats.recentSessions?.map((session) => (
-                <div
-                  key={session.id}
-                  className="flex items-center justify-between border-b pb-2 last:border-0"
-                >
-                  <div>
-                    <p className="font-medium">{session.userName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(session.loginTime).toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                        session.isActive
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-                          : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100"
-                      }`}
+                    <div
+                      key={session.id}
+                      className="flex items-center justify-between border-b pb-2 last:border-0"
                     >
-                      {session.isActive ? "Online" : "Offline"}
-                    </span>
-                  </div>
-                </div>
+                      <div>
+                    <p className="font-medium">{session.userName}</p>
+                        <p className="text-sm text-muted-foreground">
+                      {new Date(session.loginTime).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                            session.isActive
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                              : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100"
+                          }`}
+                        >
+                          {session.isActive ? "Online" : "Offline"}
+                        </span>
+                      </div>
+                    </div>
               ))}
             </div>
           </CardContent>

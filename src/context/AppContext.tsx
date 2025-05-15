@@ -47,7 +47,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (token && savedUser) {
       try {
         const user = JSON.parse(savedUser);
-        setCurrentUser(user);
+      setCurrentUser(user);
         
         // Add a new login session if one doesn't exist
         const existingSession = loginSessions.find(

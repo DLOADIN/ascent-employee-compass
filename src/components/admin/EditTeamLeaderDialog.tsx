@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -33,7 +32,11 @@ const formSchema = z.object({
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
   skillLevel: z.enum(["Beginner", "Intermediate", "Advanced"]),
   experience: z.string().min(1, "Experience is required"),
-  skills: z.string().min(1, "Skills are required"),
+  skills: z.string().transform(str => 
+    str.split(',')
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+  ),
   description: z.string().optional(),
 });
 
@@ -43,10 +46,12 @@ export function EditTeamLeaderDialog({
   open,
   onOpenChange,
   user,
+  onSubmit: handleSubmit,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user: User;
+  onSubmit: (data: Partial<User>) => Promise<void>;
 }) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,24 +65,47 @@ export function EditTeamLeaderDialog({
       phoneNumber: user.phoneNumber || "",
       skillLevel: user.skillLevel as SkillLevel || "Intermediate",
       experience: user.experience?.toString() || "",
-      skills: user.skills?.join(", ") || "",
+      skills: user.skills?.map(skill => skill.name)?.join(", ") || "",
       description: user.description || "",
     },
   });
 
-  const onSubmit = (data: FormValues) => {
-    setIsSubmitting(true);
-    
-    // This would be an API call in a real application
-    setTimeout(() => {
+  const onSubmit = async (data: FormValues) => {
+    try {
+      setIsSubmitting(true);
+      const formattedData: Partial<User> = {
+        name: data.name,
+        email: data.email,
+        department: data.department,
+        phoneNumber: data.phoneNumber,
+        skillLevel: data.skillLevel,
+        role: "TeamLeader",
+        isActive: true,
+        experienceLevel: parseInt(data.experience),
+        description: data.description,
+        skills: data.skills.map(skill => ({
+          id: crypto.randomUUID(),
+          name: skill,
+          level: data.skillLevel
+        }))
+      };
+
+      await handleSubmit(formattedData);
       toast({
         title: "Team Leader Updated",
         description: `${data.name}'s information has been updated successfully.`,
       });
-      
-      setIsSubmitting(false);
       onOpenChange(false);
-    }, 1000);
+    } catch (error) {
+      console.error('Error updating team leader:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update team leader. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

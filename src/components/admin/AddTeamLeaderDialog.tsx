@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Department, SkillLevel } from "@/types";
+import { Department, SkillLevel, User } from "@/types";
 import { useToast } from "@/components/ui/use-toast";
 import { 
   Dialog, 
@@ -33,19 +32,22 @@ const formSchema = z.object({
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
   skillLevel: z.enum(["Beginner", "Intermediate", "Advanced"]),
   experience: z.string().min(1, "Experience is required"),
-  skills: z.string().min(1, "Skills are required"),
   description: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
+interface AddTeamLeaderDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: Omit<User, 'id'>) => Promise<void>;
+}
+
 export function AddTeamLeaderDialog({
   open,
   onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
+  onSubmit
+}: AddTeamLeaderDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,25 +60,46 @@ export function AddTeamLeaderDialog({
       phoneNumber: "",
       skillLevel: "Intermediate" as SkillLevel,
       experience: "",
-      skills: "",
       description: "",
     },
   });
 
-  const onSubmit = (data: FormValues) => {
-    setIsSubmitting(true);
-    
-    // This would be an API call in a real application
-    setTimeout(() => {
-      toast({
-        title: "Team Leader Added",
-        description: `${data.name} has been added as a team leader successfully.`,
-      });
+  const handleSubmit = async (data: FormValues) => {
+    try {
+      setIsSubmitting(true);
+      const formattedData: Omit<User, 'id'> = {
+        name: data.name,
+        email: data.email,
+        department: data.department,
+        phoneNumber: data.phoneNumber,
+        skillLevel: data.skillLevel,
+        role: "TeamLeader",
+        isActive: true,
+        experienceLevel: parseInt(data.experience),
+        description: data.description || undefined,
+        skills: [{
+          id: crypto.randomUUID(),
+          name: data.skillLevel,
+          level: data.skillLevel
+        }]
+      };
       
-      setIsSubmitting(false);
+      await onSubmit(formattedData);
       form.reset();
-      onOpenChange(false);
-    }, 1000);
+      toast({
+        title: "Success",
+        description: "Team leader added successfully"
+      });
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add team leader. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -90,7 +113,7 @@ export function AddTeamLeaderDialog({
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -121,43 +144,41 @@ export function AddTeamLeaderDialog({
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="department"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Department</FormLabel>
-                    <FormControl>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        {...field}
-                      >
-                        <option value="IT">IT</option>
-                        <option value="Finance">Finance</option>
-                        <option value="Sales">Sales</option>
-                        <option value="Customer-Service">Customer Service</option>
-                      </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Department</FormLabel>
+                  <FormControl>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      {...field}
+                    >
+                      <option value="IT">IT</option>
+                      <option value="Finance">Finance</option>
+                      <option value="Sales">Sales</option>
+                      <option value="Customer-Service">Customer Service</option>
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
               
-              <FormField
-                control={form.control}
-                name="phoneNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="+1 234 567 890" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="phoneNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="+1 234 567 890" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -210,20 +231,6 @@ export function AddTeamLeaderDialog({
                   <FormLabel>Experience (years)</FormLabel>
                   <FormControl>
                     <Input type="number" min="0" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="skills"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Skills (comma separated)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Leadership, Communication, Project Management" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

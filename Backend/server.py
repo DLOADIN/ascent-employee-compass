@@ -329,7 +329,7 @@ def create_user(current_user_id):
 @app.route('/api/users/<int:user_id>', methods=['PUT'])
 @token_required
 def update_user(current_user_id, user_id):
-    """Update user information with simplified handling"""
+    """Update user information with improved field handling"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -343,30 +343,31 @@ def update_user(current_user_id, user_id):
 
         data = request.get_json()
         
-        # Define allowed fields for update
+        # Define allowed fields for update with their SQL column names
         allowed_fields = {
-            'name': str,
-            'email': str,
-            'phone_number': str,
-            'department': str,
-            'skill_level': str,
-            'experience': int,
-            'experience_level': int,
-            'description': str,
-            'profile_image_url': str,
-            'is_active': bool
+            'name': ('name', str),
+            'email': ('email', str),
+            'phoneNumber': ('phone_number', str),
+            'department': ('department', str),
+            'skillLevel': ('skill_level', str),
+            'experience': ('experience', str),
+            'experienceLevel': ('experience_level', int),
+            'description': ('description', str),
+            'profileImage': ('profile_image_url', str),
+            'isActive': ('is_active', bool),
+            'role': ('role', str)
         }
         
         # Build update query dynamically
         update_fields = []
         update_values = []
         
-        for field, field_type in allowed_fields.items():
+        for field, (column_name, field_type) in allowed_fields.items():
             if field in data:
                 try:
                     # Type conversion
                     value = field_type(data[field])
-                    update_fields.append(f"{field} = %s")
+                    update_fields.append(f"{column_name} = %s")
                     update_values.append(value)
                 except (ValueError, TypeError):
                     return jsonify({'message': f'Invalid value for field: {field}'}), 400
@@ -383,15 +384,25 @@ def update_user(current_user_id, user_id):
         conn.commit()
         
         # Fetch and return updated user
-        cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+        cursor.execute('''
+            SELECT id, name, email, role, department, phone_number as phoneNumber,
+                   skill_level as skillLevel, experience, experience_level as experienceLevel,
+                   description, profile_image_url as profileImage, is_active as isActive
+            FROM users 
+            WHERE id = %s
+        ''', (user_id,))
         updated_user = cursor.fetchone()
-        if updated_user:
-            del updated_user['password_hash']
         
-        return jsonify({
-            'message': 'User updated successfully',
-            'user': updated_user
-        })
+        if updated_user:
+            # Convert boolean fields
+            updated_user['isActive'] = bool(updated_user['isActive'])
+            
+            return jsonify({
+                'message': 'User updated successfully',
+                'user': updated_user
+            })
+        else:
+            return jsonify({'message': 'User not found'}), 404
 
     except Exception as e:
         logger.error(f"User update error: {str(e)}")

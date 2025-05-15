@@ -137,17 +137,17 @@ const SettingsPage = () => {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
-      
-      toast({
-        title: "Password Updated",
+    
+    toast({
+      title: "Password Updated",
         description: data.message || "Your password has been updated successfully.",
-      });
-      
-      securityForm.reset({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
+    });
+    
+    securityForm.reset({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
     } catch (error: any) {
       toast({
         title: "Update Failed",
@@ -168,13 +168,13 @@ const SettingsPage = () => {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
-      
-      toast({
-        title: "Account Deleted",
+    
+    toast({
+      title: "Account Deleted",
         description: data.message || "Your account has been deleted successfully. You will be logged out.",
-        variant: "destructive",
-      });
-      
+      variant: "destructive",
+    });
+    
       // Logout and redirect to login page
       logout();
       navigate('/login');
@@ -185,7 +185,7 @@ const SettingsPage = () => {
         variant: "destructive",
       });
     } finally {
-      setIsDeleteDialogOpen(false);
+    setIsDeleteDialogOpen(false);
     }
   };
 

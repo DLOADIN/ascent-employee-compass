@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Card, 
   CardContent, 
@@ -26,10 +25,13 @@ import { EditEmployeeDialog } from "@/components/admin/EditEmployeeDialog";
 import { EmployeeDetailsDialog } from "@/components/admin/EmployeeDetailsDialog";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { PromoteToTeamLeaderDialog } from "@/components/admin/PromoteToTeamLeaderDialog";
+import axios from "axios";
 
 const EmployeesPage = () => {
   const { toast } = useToast();
   const { users } = useAppContext();
+  const [employees, setEmployees] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -40,22 +42,84 @@ const EmployeesPage = () => {
   const [roleFilter, setRoleFilter] = useState<UserRole | "All">("All");
   const [departmentFilter, setDepartmentFilter] = useState<Department | "All">("All");
 
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const { data } = await axios.get<User[]>('http://localhost:5000/api/users', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEmployees(data.filter(user => user.role === "Employee"));
+    } catch (error: any) {
+      console.error('Error fetching employees:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to fetch employees",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Filter employees based on search, role, and department
-  const filteredEmployees = users.filter((user) => {
+  const filteredEmployees = employees.filter((user) => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === "All" || user.role === roleFilter;
     const matchesDepartment = departmentFilter === "All" || user.department === departmentFilter;
-    return matchesSearch && matchesRole && matchesDepartment;
+    return matchesSearch && matchesRole && matchesDepartment && user.role === "Employee";
   });
 
-  const handleAddEmployee = () => {
-    setIsAddDialogOpen(true);
+  const handleAddEmployee = async (employeeData: Omit<User, 'id'>) => {
+    try {
+      const token = localStorage.getItem('token');
+      const { data } = await axios.post<User>(
+        'http://localhost:5000/api/users',
+        employeeData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setEmployees([...employees, data]);
+      setIsAddDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Employee added successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to add employee",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleEditEmployee = (user: User) => {
-    setSelectedUser(user);
-    setIsEditDialogOpen(true);
+  const handleEditEmployee = async (userId: string, updatedData: Partial<User>) => {
+    try {
+      const token = localStorage.getItem('token');
+      const { data } = await axios.put<User>(
+        `http://localhost:5000/api/users/${userId}`,
+        updatedData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setEmployees(employees.map(emp => emp.id === userId ? data : emp));
+      setIsEditDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Employee updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to update employee",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleViewDetails = (user: User) => {
@@ -63,32 +127,67 @@ const EmployeesPage = () => {
     setIsDetailsDialogOpen(true);
   };
 
-  const handleDeleteEmployee = (user: User) => {
+  const handleDeleteEmployee = async (user: User) => {
     setSelectedUser(user);
     setIsConfirmDialogOpen(true);
   };
 
-  const handlePromoteEmployee = (user: User) => {
-    setSelectedUser(user);
-    setIsPromoteDialogOpen(true);
-  };
-
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedUser) {
-      // In a real app, this would call an API
-      toast({
-        title: "Employee Deleted",
-        description: `${selectedUser.name} has been removed from the system.`,
-      });
-      setIsConfirmDialogOpen(false);
+      try {
+        const token = localStorage.getItem('token');
+        await axios.delete(`http://localhost:5000/api/users/${selectedUser.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        setEmployees(employees.filter(emp => emp.id !== selectedUser.id));
+        setIsConfirmDialogOpen(false);
+        toast({
+          title: "Success",
+          description: `${selectedUser.name} has been removed from the system.`,
+        });
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message || "Failed to delete employee",
+          variant: "destructive",
+        });
+      }
     }
   };
+
+  const handlePromoteEmployee = async (user: User) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `http://localhost:5000/api/users/${user.id}/promote`,
+        { newRole: 'TeamLeader' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setEmployees(employees.filter(emp => emp.id !== user.id));
+      toast({
+        title: "Success",
+        description: `${user.name} has been promoted to Team Leader`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to promote employee",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return <div>Loading employees...</div>;
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-3xl font-bold">Employees Management</h2>
-        <Button onClick={handleAddEmployee} className="sm:w-auto w-full">
+        <Button onClick={() => setIsAddDialogOpen(true)} className="sm:w-auto w-full">
           <UserPlus className="mr-2 h-4 w-4" />
           Add Employee
         </Button>
@@ -189,7 +288,7 @@ const EmployeesPage = () => {
                             size="icon"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleEditEmployee(user);
+                              handleEditEmployee(user.id, { name: user.name, email: user.email, phoneNumber: user.phoneNumber });
                             }}
                           >
                             <Edit className="h-4 w-4" />
@@ -219,6 +318,7 @@ const EmployeesPage = () => {
       <AddEmployeeDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
+        onSubmit={handleAddEmployee}
       />
 
       {selectedUser && (
@@ -227,6 +327,7 @@ const EmployeesPage = () => {
             open={isEditDialogOpen}
             onOpenChange={setIsEditDialogOpen}
             user={selectedUser}
+            onSubmit={(data) => handleEditEmployee(selectedUser.id, data)}
           />
           <EmployeeDetailsDialog
             open={isDetailsDialogOpen}
@@ -244,6 +345,7 @@ const EmployeesPage = () => {
             open={isPromoteDialogOpen}
             onOpenChange={setIsPromoteDialogOpen}
             user={selectedUser}
+            onConfirm={() => handlePromoteEmployee(selectedUser)}
           />
         </>
       )}
