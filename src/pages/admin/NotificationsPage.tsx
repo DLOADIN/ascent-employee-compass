@@ -26,13 +26,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Bell, Calendar, Trash2 } from "lucide-react";
+import { Bell, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Notification, Department } from "@/types";
-import { format, isAfter, isBefore, startOfDay, subDays } from "date-fns";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 import axios from "axios";
 
 const NotificationsPage = () => {
@@ -44,11 +40,6 @@ const NotificationsPage = () => {
   const [notificationType, setNotificationType] = useState<"task" | "course" | "job" | "general">("general");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<string | null>(null);
-  
-  // Date filter states
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  const [dateFilterType, setDateFilterType] = useState<"all" | "today" | "week" | "month" | "custom">("all");
   
   const { toast } = useToast();
 
@@ -81,41 +72,6 @@ const NotificationsPage = () => {
       setLoading(false);
     }
   };
-
-  // Filter notifications by date
-  const filteredNotifications = notifications.filter(notification => {
-    if (dateFilterType === "all") return true;
-    
-    // Ensure we have a valid date before parsing
-    const createdAt = notification.createdAt ? new Date(notification.createdAt) : null;
-    if (!createdAt || isNaN(createdAt.getTime())) {
-      return false;
-    }
-    
-    const notificationDate = startOfDay(createdAt);
-    const today = startOfDay(new Date());
-    
-    switch (dateFilterType) {
-      case "today":
-        return notificationDate.getTime() === today.getTime();
-      case "week":
-        const weekAgo = subDays(today, 7);
-        return isAfter(notificationDate, weekAgo) || notificationDate.getTime() === weekAgo.getTime();
-      case "month":
-        const monthAgo = subDays(today, 30);
-        return isAfter(notificationDate, monthAgo) || notificationDate.getTime() === monthAgo.getTime();
-      case "custom":
-        if (startDate && endDate) {
-          const start = startOfDay(startDate);
-          const end = startOfDay(endDate);
-          return (isAfter(notificationDate, start) || notificationDate.getTime() === start.getTime()) && 
-                 (isBefore(notificationDate, end) || notificationDate.getTime() === end.getTime());
-        }
-        return true;
-      default:
-        return true;
-    }
-  });
 
   const handleSendNotification = async () => {
     if (!title.trim() || !message.trim()) {
@@ -198,14 +154,6 @@ const NotificationsPage = () => {
         setDeleteDialogOpen(false);
         setSelectedNotification(null);
       }
-    }
-  };
-
-  const handleDateFilterChange = (value: string) => {
-    setDateFilterType(value as "all" | "today" | "week" | "month" | "custom");
-    if (value !== "custom") {
-      setStartDate(undefined);
-      setEndDate(undefined);
     }
   };
 
@@ -308,64 +256,11 @@ const NotificationsPage = () => {
             <CardDescription>
               View and manage recent notifications sent to employees
             </CardDescription>
-            <div className="flex flex-col sm:flex-row gap-2 mt-2">
-              <Select value={dateFilterType} onValueChange={handleDateFilterChange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by date" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">Last 7 Days</SelectItem>
-                  <SelectItem value="month">Last 30 Days</SelectItem>
-                  <SelectItem value="custom">Custom Range</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {dateFilterType === "custom" && (
-                <div className="flex gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn(!startDate && "text-muted-foreground")}>
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {startDate ? format(startDate, "PP") : "Start date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn(!endDate && "text-muted-foreground")}>
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, "PP") : "End date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                        initialFocus
-                        disabled={(date) => startDate ? isBefore(date, startDate) : false}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              )}
-            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {filteredNotifications.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No notifications match your filter criteria</p>
+              {notifications.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No notifications found</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -377,43 +272,35 @@ const NotificationsPage = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredNotifications.map((notification) => {
-                      // Ensure we have a valid date
-                      const createdAt = notification.createdAt ? new Date(notification.createdAt) : null;
-                      const formattedDate = createdAt && !isNaN(createdAt.getTime()) 
-                        ? format(createdAt, "MMM d, yyyy")
-                        : "Invalid date";
-
-                      return (
-                        <TableRow key={notification.id}>
-                          <TableCell>
-                            <div className="font-medium">{notification.title}</div>
-                            <div className="text-sm text-muted-foreground line-clamp-1">
-                              {notification.message}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={notification.type === "job" ? "default" : 
-                                          notification.type === "course" ? "secondary" :
-                                          "outline"}>
-                              {notification.type.charAt(0).toUpperCase() + notification.type.slice(1)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {formattedDate}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteClick(notification.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {notifications.map((notification) => (
+                      <TableRow key={notification.id}>
+                        <TableCell>
+                          <div className="font-medium">{notification.title}</div>
+                          <div className="text-sm text-muted-foreground line-clamp-1">
+                            {notification.message}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={notification.type === "job" ? "default" : 
+                                      notification.type === "course" ? "secondary" :
+                                      "outline"}>
+                            {notification.type.charAt(0).toUpperCase() + notification.type.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {String(notification.createdAt).split('T')[0]}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteClick(notification.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               )}
