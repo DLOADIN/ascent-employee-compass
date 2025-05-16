@@ -64,10 +64,11 @@ export interface Notification {
   id: string;
   title: string;
   message: string;
-  userId: string;
-  isRead: boolean;
-  createdAt: Date;
   type: "task" | "course" | "job" | "general";
+  createdAt: string;
+  user_id: string;
+  user_name?: string;
+  department?: string;
   link?: string;
 }
 

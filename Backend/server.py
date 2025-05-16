@@ -439,6 +439,50 @@ def delete_user(current_user_id, user_id):
         cursor.close()
         conn.close()
 
+@app.route('/api/users/<int:user_id>/password', methods=['PUT'])
+@token_required
+def update_password(current_user_id, user_id):
+    try:
+        # Check if the user is updating their own password
+        if current_user_id != user_id:
+            return jsonify({'message': 'Unauthorized to update password for other users'}), 403
+            
+        data = request.get_json()
+        current_password = data.get('currentPassword')
+        new_password = data.get('newPassword')
+        
+        if not current_password or not new_password:
+            return jsonify({'message': 'Missing current or new password'}), 400
+            
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get user's current password hash
+        cursor.execute('SELECT password_hash FROM users WHERE id = %s', (user_id,))
+        user = cursor.fetchone()
+        
+        if not user:
+            return jsonify({'message': 'User not found'}), 404
+            
+        # Check if current password matches
+        if not check_password_hash(user['password_hash'], current_password):
+            return jsonify({'message': 'Current password is incorrect'}), 401
+            
+        # Hash and update new password
+        new_password_hash = generate_password_hash(new_password)
+        cursor.execute('UPDATE users SET password_hash = %s WHERE id = %s', 
+                      (new_password_hash, user_id))
+        conn.commit()
+        
+        return jsonify({'message': 'Password updated successfully'})
+        
+    except Exception as e:
+        logger.error(f"Password update error: {str(e)}")
+        return jsonify({'message': 'Error updating password'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 @app.route('/api/users/reset-password/<int:user_id>', methods=['POST'])
 @token_required
 def reset_user_password(current_user_id, user_id):

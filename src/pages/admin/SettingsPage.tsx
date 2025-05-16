@@ -51,6 +51,10 @@ const profileFormSchema = z.object({
   phoneNumber: z.string().min(10, "Phone number must be at least 10 characters"),
   description: z.string().optional(),
   profileImage: z.string().optional(),
+  department: z.string(),
+  role: z.string(),
+  experience: z.coerce.number().optional(),
+  experienceLevel: z.coerce.number().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -81,6 +85,10 @@ const SettingsPage = () => {
       phoneNumber: currentUser?.phoneNumber || "",
       description: currentUser?.description || "",
       profileImage: currentUser?.profileImage || "",
+      department: currentUser?.department || "",
+      role: currentUser?.role || "",
+      experience: currentUser?.experience || 0,
+      experienceLevel: currentUser?.experienceLevel || 1,
     },
   });
 
@@ -94,11 +102,13 @@ const SettingsPage = () => {
   });
 
   const onProfileSubmit = async (values: ProfileFormValues) => {
+    if (!currentUser?.id) return;
+    
     setIsUpdating(true);
     try {
       const token = localStorage.getItem('token');
       const { data } = await axios.put<UpdateProfileResponse>(
-        `http://localhost:5000/api/users/${currentUser?.id}`,
+        `http://localhost:5000/api/users/${currentUser.id}`,
         values,
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -124,11 +134,13 @@ const SettingsPage = () => {
   };
 
   const onSecuritySubmit = async (values: SecurityFormValues) => {
+    if (!currentUser?.id) return;
+    
     setIsUpdating(true);
     try {
       const token = localStorage.getItem('token');
       const { data } = await axios.put<UpdatePasswordResponse>(
-        `http://localhost:5000/api/users/${currentUser?.id}/password`,
+        `http://localhost:5000/api/users/${currentUser.id}/password`,
         {
           currentPassword: values.currentPassword,
           newPassword: values.newPassword,
@@ -138,16 +150,16 @@ const SettingsPage = () => {
         }
       );
     
-    toast({
-      title: "Password Updated",
+      toast({
+        title: "Password Updated",
         description: data.message || "Your password has been updated successfully.",
-    });
+      });
     
-    securityForm.reset({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+      securityForm.reset({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
     } catch (error: any) {
       toast({
         title: "Update Failed",
@@ -160,21 +172,26 @@ const SettingsPage = () => {
   };
 
   const handleDeleteAccount = async () => {
+    if (!currentUser?.id) return;
+    
     try {
       const token = localStorage.getItem('token');
       const { data } = await axios.delete<DeleteAccountResponse>(
-        `http://localhost:5000/api/users/${currentUser?.id}`,
+        `http://localhost:5000/api/users/${currentUser.id}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
     
-    toast({
-      title: "Account Deleted",
+      toast({
+        title: "Account Deleted",
         description: data.message || "Your account has been deleted successfully. You will be logged out.",
-      variant: "destructive",
-    });
+        variant: "destructive",
+      });
     
+      // Clear local storage
+      localStorage.removeItem('token');
+      
       // Logout and redirect to login page
       logout();
       navigate('/login');
@@ -185,7 +202,7 @@ const SettingsPage = () => {
         variant: "destructive",
       });
     } finally {
-    setIsDeleteDialogOpen(false);
+      setIsDeleteDialogOpen(false);
     }
   };
 
