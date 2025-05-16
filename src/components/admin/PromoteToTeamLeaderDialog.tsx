@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -34,15 +33,19 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function PromoteToTeamLeaderDialog({
-  open,
-  onOpenChange,
-  user
-}: {
+interface PromoteToTeamLeaderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user: User;
-}) {
+  onConfirm: (user: User) => Promise<void>;
+}
+
+export function PromoteToTeamLeaderDialog({
+  open,
+  onOpenChange,
+  user,
+  onConfirm
+}: PromoteToTeamLeaderDialogProps) {
   const { toast } = useToast();
   const { updateUser } = useAppContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,44 +53,46 @@ export function PromoteToTeamLeaderDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      experience: "",
+      experience: user.experience?.toString() || "",
       skills: user.skills ? user.skills.map(skill => skill.name).join(", ") : "",
       description: user.description || "",
     },
   });
 
-  const onSubmit = (data: FormValues) => {
-    setIsSubmitting(true);
-    
-    // Convert skill strings to Skill objects
-    const skillObjects: Skill[] = data.skills.split(",").map((skillName, index) => ({
-      id: `skill-${index}-${Date.now()}`,
-      name: skillName.trim(),
-      level: "Intermediate" as SkillLevel
-    }));
-    
-    // Update the user role to TeamLeader
-    const updatedUser: User = {
-      ...user,
-      role: "TeamLeader",
-      skills: skillObjects,
-      description: data.description,
-      experience: parseInt(data.experience),
-    };
-    
-    // This would typically be an API call in a real application
-    setTimeout(() => {
-      updateUser(updatedUser);
+  const onSubmit = async (data: FormValues) => {
+    try {
+      setIsSubmitting(true);
       
+      // Update the user with new role and additional data
+      const updatedUser: User = {
+        ...user,
+        role: "TeamLeader",
+        experience: parseInt(data.experience),
+        description: data.description || user.description,
+        skills: data.skills.split(",").map((skill, index) => ({
+          id: `skill-${index}`,
+          name: skill.trim(),
+          level: "Intermediate" as SkillLevel
+        }))
+      };
+      
+      await onConfirm(updatedUser);
       toast({
-        title: "Employee Promoted",
+        title: "Success",
         description: `${user.name} has been promoted to Team Leader successfully.`,
       });
       
-      setIsSubmitting(false);
       form.reset();
       onOpenChange(false);
-    }, 1000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to promote employee. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

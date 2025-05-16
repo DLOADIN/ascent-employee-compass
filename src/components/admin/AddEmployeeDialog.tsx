@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -32,13 +31,14 @@ import { Department, SkillLevel, UserRole } from "@/types";
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional(),
   role: z.enum(["Admin", "Employee", "TeamLeader"]),
-  department: z.enum(["IT", "Finance", "Sales", "Customer-Service"]).optional(),
-  phoneNumber: z.string().min(10, { message: "Phone number must be at least 10 digits." }),
-  experienceLevel: z.coerce.number().min(0).max(20).optional(),
-  description: z.string().optional(),
-  skillName: z.string().optional(),
-  skillLevel: z.enum(["Beginner", "Intermediate", "Advanced"]).optional(),
+  department: z.enum(["IT", "Finance", "Sales", "Customer-Service"]).optional().nullable(),
+  phoneNumber: z.string().optional(),
+  experienceLevel: z.coerce.number().min(0).max(20).optional().nullable(),
+  description: z.string().optional().nullable(),
+  skillName: z.string().optional().nullable(),
+  skillLevel: z.enum(["Beginner", "Intermediate", "Advanced"]).optional().nullable(),
   isActive: z.boolean().default(true),
   sendCredentials: z.boolean().default(true),
 });
@@ -48,9 +48,10 @@ type FormValues = z.infer<typeof formSchema>;
 interface AddEmployeeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSubmit: (values: FormValues) => Promise<void>;
 }
 
-export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps) {
+export function AddEmployeeDialog({ open, onOpenChange, onSubmit }: AddEmployeeDialogProps) {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [cvFile, setCvFile] = useState<File | null>(null);
@@ -78,28 +79,21 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
     }
   };
 
-  const onSubmit = async (values: FormValues) => {
+  const handleSubmit = async (values: FormValues) => {
     try {
-      // Simulate API call
-      console.log("Form values:", values);
-      console.log("CV file:", cvFile);
-      
-      // In a real application, you would upload the CV and send the form data to your API
-      
-      toast({
-        title: "Employee added successfully",
-        description: `${values.name} has been added to the system${values.sendCredentials ? ' and credentials sent' : ''}.`,
-      });
-      
-      onOpenChange(false);
+      setIsUploading(true);
+      await onSubmit(values);
       form.reset();
       setCvFile(null);
-    } catch (error) {
+      onOpenChange(false);
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to add employee. Please try again.",
+        description: error.message || "Failed to add employee. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -116,7 +110,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
@@ -150,6 +144,23 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password (Optional)</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Leave empty for default password" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      If left empty, a default password will be set
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="role"
                 render={({ field }) => (
                   <FormItem>
@@ -170,7 +181,9 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
                   </FormItem>
                 )}
               />
+            </div>
 
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="department"

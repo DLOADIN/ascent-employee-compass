@@ -74,12 +74,26 @@ const EmployeesPage = () => {
     return matchesSearch && matchesRole && matchesDepartment && user.role === "Employee";
   });
 
-  const handleAddEmployee = async (employeeData: Omit<User, 'id'>) => {
+  const handleAddEmployee = async (employeeData: Omit<User, 'id'> & { password?: string }) => {
     try {
       const token = localStorage.getItem('token');
+      
+      // Remove null/undefined values and format data for backend
+      const formattedData = {
+        name: employeeData.name,
+        email: employeeData.email,
+        password: employeeData.password || 'password123', // Use default password if not provided
+        role: employeeData.role,
+        department: employeeData.department || null,
+        phone_number: employeeData.phoneNumber || null,
+        experience_level: employeeData.experienceLevel || null,
+        description: employeeData.description || null,
+        is_active: employeeData.isActive
+      };
+
       const { data } = await axios.post<User>(
         'http://localhost:5000/api/users',
-        employeeData,
+        formattedData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -90,11 +104,8 @@ const EmployeesPage = () => {
         description: "Employee added successfully",
       });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to add employee",
-        variant: "destructive",
-      });
+      const errorMessage = error.response?.data?.message || "Failed to add employee";
+      throw new Error(errorMessage);
     }
   };
 
@@ -159,17 +170,28 @@ const EmployeesPage = () => {
   const handlePromoteEmployee = async (user: User) => {
     try {
       const token = localStorage.getItem('token');
+      
+      // Update user role directly using the user update endpoint
+      const updatedData = {
+        ...user,
+        role: 'TeamLeader'
+      };
+
       await axios.put(
-        `http://localhost:5000/api/users/${user.id}/promote`,
-        { newRole: 'TeamLeader' },
+        `http://localhost:5000/api/users/${user.id}`,
+        updatedData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      // Update local state
       setEmployees(employees.filter(emp => emp.id !== user.id));
+      
       toast({
         title: "Success",
         description: `${user.name} has been promoted to Team Leader`,
       });
+      
+      setIsPromoteDialogOpen(false);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -327,7 +349,7 @@ const EmployeesPage = () => {
             open={isEditDialogOpen}
             onOpenChange={setIsEditDialogOpen}
             user={selectedUser}
-            onSubmit={(data) => handleEditEmployee(selectedUser.id, data)}
+            onSubmit={handleEditEmployee}
           />
           <EmployeeDetailsDialog
             open={isDetailsDialogOpen}

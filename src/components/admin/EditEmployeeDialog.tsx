@@ -47,9 +47,10 @@ interface EditEmployeeDialogProps {
   user: User;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSubmit: (userId: string, values: Partial<User>) => Promise<void>;
 }
 
-export function EditEmployeeDialog({ user, open, onOpenChange }: EditEmployeeDialogProps) {
+export function EditEmployeeDialog({ user, open, onOpenChange, onSubmit }: EditEmployeeDialogProps) {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [cvFile, setCvFile] = useState<File | null>(null);
@@ -92,19 +93,20 @@ export function EditEmployeeDialog({ user, open, onOpenChange }: EditEmployeeDia
     }
   };
 
-  const onSubmit = async (values: FormValues) => {
+  const handleSubmit = async (values: FormValues) => {
     try {
-      // Simulate API call
-      console.log("Updated form values:", values);
-      console.log("New CV file:", cvFile);
-      
-      // In a real application, you would update the user in your database
-      
-      toast({
-        title: "Employee updated successfully",
-        description: `${values.name}'s information has been updated.`,
-      });
-      
+      setIsUploading(true);
+      const userData: Partial<User> = {
+        name: values.name,
+        email: values.email,
+        role: values.role,
+        department: values.department,
+        phoneNumber: values.phoneNumber,
+        experienceLevel: values.experienceLevel,
+        description: values.description,
+        isActive: values.isActive,
+      };
+      await onSubmit(user.id, userData);
       onOpenChange(false);
     } catch (error) {
       toast({
@@ -112,6 +114,8 @@ export function EditEmployeeDialog({ user, open, onOpenChange }: EditEmployeeDia
         description: "Failed to update employee. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -128,7 +132,7 @@ export function EditEmployeeDialog({ user, open, onOpenChange }: EditEmployeeDia
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
