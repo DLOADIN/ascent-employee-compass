@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
-  experience: z.string().min(1, "Experience is required"),
+  experience: z.coerce.number().min(0, "Experience is required"),
   skills: z.string().min(1, "Skills are required"),
   description: z.string().optional(),
 });
@@ -53,7 +53,7 @@ export function PromoteToTeamLeaderDialog({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      experience: user.experience?.toString() || "",
+      experience: user.experience || 0,
       skills: user.skills ? user.skills.map(skill => skill.name).join(", ") : "",
       description: user.description || "",
     },
@@ -67,7 +67,7 @@ export function PromoteToTeamLeaderDialog({
       const updatedUser: User = {
         ...user,
         role: "TeamLeader",
-        experience: parseInt(data.experience),
+        experience: data.experience,
         description: data.description || user.description,
         skills: data.skills.split(",").map((skill, index) => ({
           id: `skill-${index}`,
@@ -77,6 +77,7 @@ export function PromoteToTeamLeaderDialog({
       };
       
       await onConfirm(updatedUser);
+      
       toast({
         title: "Success",
         description: `${user.name} has been promoted to Team Leader successfully.`,
@@ -84,10 +85,11 @@ export function PromoteToTeamLeaderDialog({
       
       form.reset();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Promotion error:', error);
       toast({
         title: "Error",
-        description: "Failed to promote employee. Please try again.",
+        description: error.message || "Failed to promote employee. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -116,7 +118,13 @@ export function PromoteToTeamLeaderDialog({
                     <FormItem>
                       <FormLabel>Experience (years)</FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" {...field} />
+                        <Input 
+                          type="number" 
+                          min="0" 
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                          value={field.value || ''}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

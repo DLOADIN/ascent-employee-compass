@@ -35,7 +35,7 @@ const formSchema = z.object({
   department: z.enum(["Admin", "IT", "Finance", "Sales", "Customer-Service"]).optional(),
   phoneNumber: z.string().min(10, { message: "Phone number must be at least 10 digits." }),
   skillLevel: z.enum(["Beginner", "Intermediate", "Advanced"]).optional(),
-  experience: z.number().min(0).optional(),
+  experience: z.coerce.number().min(0).optional(),
   experienceLevel: z.coerce.number().min(0).max(20).optional(),
   description: z.string().optional(),
   isActive: z.boolean(),
@@ -103,17 +103,21 @@ export function EditEmployeeDialog({ user, open, onOpenChange, onSubmit }: EditE
         department: values.department,
         phoneNumber: values.phoneNumber,
         skillLevel: values.skillLevel,
-        experience: values.experience,
-        experienceLevel: values.experienceLevel,
+        experience: Number(values.experience),
+        experienceLevel: Number(values.experienceLevel),
         description: values.description,
         isActive: values.isActive,
       };
       await onSubmit(user.id, userData);
+      toast({
+        title: "Success",
+        description: "Employee updated successfully",
+      });
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to update employee. Please try again.",
+        description: error.message || "Failed to update employee. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -278,7 +282,14 @@ export function EditEmployeeDialog({ user, open, onOpenChange, onSubmit }: EditE
                 <FormItem>
                   <FormLabel>Experience Level (years)</FormLabel>
                   <FormControl>
-                    <Input type="number" min="0" max="20" {...field} />
+                    <Input 
+                      type="number" 
+                      min="0" 
+                      max="20" 
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                      value={field.value || ''}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

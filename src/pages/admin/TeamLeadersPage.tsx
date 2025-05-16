@@ -177,10 +177,10 @@ const TeamLeadersPage = () => {
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-3xl font-bold">Team Leaders Management</h2>
-        <Button onClick={() => setIsAddDialogOpen(true)} className="sm:w-auto w-full">
+        {/* <Button onClick={() => setIsAddDialogOpen(true)} className="sm:w-auto w-full">
           <UserPlus className="mr-2 h-4 w-4" />
           Add Team Leader
-        </Button>
+        </Button> */}
       </div>
 
       <Card>

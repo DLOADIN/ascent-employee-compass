@@ -262,56 +262,57 @@ const EmployeesPage = () => {
 
   const handlePromoteEmployee = async (user: User) => {
     try {
+      setSelectedUser(user);
+      setIsPromoteDialogOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not open promotion dialog",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePromoteConfirm = async (updatedUser: User) => {
+    try {
       const token = localStorage.getItem('token');
       
       // Format the data to match backend expectations
       const formattedData = {
-        name: user.name,
-        email: user.email,
+        name: updatedUser.name,
+        email: updatedUser.email,
         role: 'TeamLeader',
-        department: user.department || null,
-        phone_number: user.phoneNumber || null,
-        skill_level: user.skillLevel || null,
-        experience: user.experience || null,
-        experience_level: user.experienceLevel || null,
-        description: user.description || null,
-        is_active: user.isActive
+        department: updatedUser.department || null,
+        phone_number: updatedUser.phoneNumber || null,
+        skill_level: updatedUser.skillLevel || null,
+        experience: updatedUser.experience || null,
+        experience_level: updatedUser.experienceLevel || null,
+        description: updatedUser.description || null,
+        is_active: updatedUser.isActive
       };
 
       const { data } = await axios.put<any>(
-        `http://localhost:5000/api/users/${user.id}`,
+        `http://localhost:5000/api/users/${updatedUser.id}`,
         formattedData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Transform the response data to match our User type
-      const transformedUser: User = {
-        id: data.id.toString(),
-        name: data.name,
-        email: data.email,
-        role: data.role,
-        department: data.department,
-        phoneNumber: data.phone_number,
-        skillLevel: data.skill_level,
-        experience: data.experience,
-        experienceLevel: data.experience_level,
-        description: data.description,
-        profileImage: data.profile_image_url,
-        isActive: Boolean(data.is_active),
-        createdAt: data.created_at,
-        updatedAt: data.updated_at
-      };
-
       // Update local state
-      setEmployees(employees.filter(emp => emp.id !== user.id));
+      setEmployees(employees.filter(emp => emp.id !== updatedUser.id));
       
       toast({
         title: "Success",
-        description: `${user.name} has been promoted to Team Leader`,
+        description: `${updatedUser.name} has been promoted to Team Leader`,
+        variant: "default"
       });
       
       setIsPromoteDialogOpen(false);
+      setSelectedUser(null);
+      
+      // Refresh the employee list
+      await fetchEmployees();
     } catch (error: any) {
+      console.error('Promotion error:', error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to promote employee",
@@ -483,7 +484,7 @@ const EmployeesPage = () => {
             open={isPromoteDialogOpen}
             onOpenChange={setIsPromoteDialogOpen}
             user={selectedUser}
-            onConfirm={() => handlePromoteEmployee(selectedUser)}
+            onConfirm={handlePromoteConfirm}
           />
         </>
       )}
