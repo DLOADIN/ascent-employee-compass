@@ -696,7 +696,8 @@ def get_notifications(current_user_id):
         # Build query based on user role
         if current_user['role'] == 'Admin':
             cursor.execute('''
-                SELECT n.*, u.name as user_name, u.department 
+                SELECT n.*, u.name as user_name, u.department,
+                       DATE(n.created_at) as createdAt
                 FROM notifications n
                 LEFT JOIN users u ON n.user_id = u.id
                 ORDER BY n.created_at DESC
@@ -705,7 +706,8 @@ def get_notifications(current_user_id):
         else:
             # For non-admin users, get notifications for their department or directed to them
             cursor.execute('''
-                SELECT n.*, u.name as user_name, u.department 
+                SELECT n.*, u.name as user_name, u.department,
+                       DATE(n.created_at) as createdAt
                 FROM notifications n
                 LEFT JOIN users u ON n.user_id = u.id
                 WHERE n.user_id = %s OR u.department = %s
@@ -714,11 +716,6 @@ def get_notifications(current_user_id):
             ''', (current_user_id, current_user['department']))
         
         notifications = cursor.fetchall()
-        
-        # Convert datetime objects to ISO format strings
-        for notification in notifications:
-            notification['created_at'] = notification['created_at'].isoformat()
-            
         return jsonify(notifications)
     
     except Exception as e:

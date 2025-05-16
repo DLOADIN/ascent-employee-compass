@@ -288,7 +288,7 @@ const NotificationsPage = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {String(notification.createdAt).split('T')[0]}
+                          {notification.createdAt}
                         </TableCell>
                         <TableCell>
                           <Button
