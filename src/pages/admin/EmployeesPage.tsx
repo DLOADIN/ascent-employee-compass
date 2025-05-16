@@ -49,10 +49,29 @@ const EmployeesPage = () => {
   const fetchEmployees = async () => {
     try {
       const token = localStorage.getItem('token');
-      const { data } = await axios.get<User[]>('http://localhost:5000/api/users', {
+      const { data } = await axios.get<any[]>('http://localhost:5000/api/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setEmployees(data.filter(user => user.role === "Employee"));
+
+      // Transform the response data to match our User type
+      const transformedUsers: User[] = data.map(user => ({
+        id: user.id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        phoneNumber: user.phone_number,
+        skillLevel: user.skill_level,
+        experience: user.experience,
+        experienceLevel: user.experience_level,
+        description: user.description,
+        profileImage: user.profile_image_url,
+        isActive: Boolean(user.is_active),
+        createdAt: user.created_at,
+        updatedAt: user.updated_at
+      }));
+
+      setEmployees(transformedUsers.filter(user => user.role === "Employee"));
     } catch (error: any) {
       console.error('Error fetching employees:', error);
       toast({
@@ -78,7 +97,7 @@ const EmployeesPage = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Remove null/undefined values and format data for backend
+      // Format the data to match backend expectations
       const formattedData = {
         name: employeeData.name,
         email: employeeData.email,
@@ -86,18 +105,38 @@ const EmployeesPage = () => {
         role: employeeData.role,
         department: employeeData.department || null,
         phone_number: employeeData.phoneNumber || null,
+        skill_level: employeeData.skillLevel || null,
+        experience: employeeData.experience || null,
         experience_level: employeeData.experienceLevel || null,
         description: employeeData.description || null,
         is_active: employeeData.isActive
       };
 
-      const { data } = await axios.post<User>(
+      const { data } = await axios.post<any>(
         'http://localhost:5000/api/users',
         formattedData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setEmployees([...employees, data]);
+      // Transform the response data to match our User type
+      const transformedUser: User = {
+        id: data.id.toString(),
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        department: data.department,
+        phoneNumber: data.phone_number,
+        skillLevel: data.skill_level,
+        experience: data.experience,
+        experienceLevel: data.experience_level,
+        description: data.description,
+        profileImage: data.profile_image_url,
+        isActive: Boolean(data.is_active),
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+
+      setEmployees([...employees, transformedUser]);
       setIsAddDialogOpen(false);
       toast({
         title: "Success",
@@ -112,25 +151,79 @@ const EmployeesPage = () => {
   const handleEditEmployee = async (userId: string, updatedData: Partial<User>) => {
     try {
       const token = localStorage.getItem('token');
-      const { data } = await axios.put<User>(
+      
+      // Format the data to match backend expectations
+      const formattedData = {
+        name: updatedData.name,
+        email: updatedData.email,
+        role: updatedData.role,
+        department: updatedData.department || null,
+        phone_number: updatedData.phoneNumber || null,
+        skill_level: updatedData.skillLevel || null,
+        experience: updatedData.experience || null,
+        experience_level: updatedData.experienceLevel || null,
+        description: updatedData.description || null,
+        is_active: updatedData.isActive
+      };
+
+      const response = await axios.put<any>(
         `http://localhost:5000/api/users/${userId}`,
-        updatedData,
+        formattedData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setEmployees(employees.map(emp => emp.id === userId ? data : emp));
-      setIsEditDialogOpen(false);
-      toast({
-        title: "Success",
-        description: "Employee updated successfully",
-      });
+      if (response.data && response.data.user) {
+        // Transform the response data to match our User type
+        const transformedUser: User = {
+          id: userId,
+          name: response.data.user.name,
+          email: response.data.user.email,
+          role: response.data.user.role,
+          department: response.data.user.department,
+          phoneNumber: response.data.user.phone_number || '',
+          skillLevel: response.data.user.skill_level,
+          experience: response.data.user.experience || 0,
+          experienceLevel: response.data.user.experience_level || 0,
+          description: response.data.user.description || '',
+          profileImage: response.data.user.profile_image_url || '',
+          isActive: Boolean(response.data.user.is_active),
+          createdAt: response.data.user.created_at,
+          updatedAt: response.data.user.updated_at
+        };
+
+        // Update the employees list immediately
+        setEmployees(prevEmployees => 
+          prevEmployees.map(emp => emp.id === userId ? transformedUser : emp)
+        );
+
+        // Close the edit dialog
+        setIsEditDialogOpen(false);
+        setSelectedUser(null);
+
+        // Show success toast
+        toast({
+          title: "Success",
+          description: "Employee updated successfully",
+          variant: "default"
+        });
+
+        // Refresh the list to ensure we have the latest data
+        await fetchEmployees();
+      }
     } catch (error: any) {
+      console.error('Error updating employee:', error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to update employee",
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditClick = (e: React.MouseEvent, user: User) => {
+    e.stopPropagation(); // Prevent row click event
+    setSelectedUser(user);
+    setIsEditDialogOpen(true);
   };
 
   const handleViewDetails = (user: User) => {
@@ -171,17 +264,43 @@ const EmployeesPage = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Update user role directly using the user update endpoint
-      const updatedData = {
-        ...user,
-        role: 'TeamLeader'
+      // Format the data to match backend expectations
+      const formattedData = {
+        name: user.name,
+        email: user.email,
+        role: 'TeamLeader',
+        department: user.department || null,
+        phone_number: user.phoneNumber || null,
+        skill_level: user.skillLevel || null,
+        experience: user.experience || null,
+        experience_level: user.experienceLevel || null,
+        description: user.description || null,
+        is_active: user.isActive
       };
 
-      await axios.put(
+      const { data } = await axios.put<any>(
         `http://localhost:5000/api/users/${user.id}`,
-        updatedData,
+        formattedData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // Transform the response data to match our User type
+      const transformedUser: User = {
+        id: data.id.toString(),
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        department: data.department,
+        phoneNumber: data.phone_number,
+        skillLevel: data.skill_level,
+        experience: data.experience,
+        experienceLevel: data.experience_level,
+        description: data.description,
+        profileImage: data.profile_image_url,
+        isActive: Boolean(data.is_active),
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
 
       // Update local state
       setEmployees(employees.filter(emp => emp.id !== user.id));
@@ -308,10 +427,7 @@ const EmployeesPage = () => {
                           <Button
                             variant="outline"
                             size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditEmployee(user.id, { name: user.name, email: user.email, phoneNumber: user.phoneNumber });
-                            }}
+                            onClick={(e) => handleEditClick(e, user)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>

@@ -25,22 +25,22 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Department, SkillLevel, UserRole } from "@/types";
+import { Department, SkillLevel, UserRole, User } from "@/types";
 
 // Form validation schema
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional(),
   role: z.enum(["Admin", "Employee", "TeamLeader"]),
-  department: z.enum(["IT", "Finance", "Sales", "Customer-Service"]).optional().nullable(),
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional(),
+  department: z.enum(["IT", "Finance", "Sales", "Customer-Service"]),
   phoneNumber: z.string().optional(),
-  experienceLevel: z.coerce.number().min(0).max(20).optional().nullable(),
-  description: z.string().optional().nullable(),
-  skillName: z.string().optional().nullable(),
-  skillLevel: z.enum(["Beginner", "Intermediate", "Advanced"]).optional().nullable(),
-  isActive: z.boolean().default(true),
-  sendCredentials: z.boolean().default(true),
+  skillLevel: z.enum(["Beginner", "Intermediate", "Advanced"]).optional(),
+  experience: z.number().min(0).optional(),
+  experienceLevel: z.coerce.number().min(0).max(20).optional(),
+  description: z.string().optional(),
+  isActive: z.boolean(),
+  sendCredentials: z.boolean().default(true)
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -48,7 +48,7 @@ type FormValues = z.infer<typeof formSchema>;
 interface AddEmployeeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: FormValues) => Promise<void>;
+  onSubmit: (values: Omit<User, "id"> & { password?: string; sendCredentials?: boolean }) => Promise<void>;
 }
 
 export function AddEmployeeDialog({ open, onOpenChange, onSubmit }: AddEmployeeDialogProps) {
@@ -66,7 +66,6 @@ export function AddEmployeeDialog({ open, onOpenChange, onSubmit }: AddEmployeeD
       phoneNumber: "",
       experienceLevel: 0,
       description: "",
-      skillName: "",
       skillLevel: "Beginner",
       isActive: true,
       sendCredentials: true,
@@ -82,7 +81,22 @@ export function AddEmployeeDialog({ open, onOpenChange, onSubmit }: AddEmployeeD
   const handleSubmit = async (values: FormValues) => {
     try {
       setIsUploading(true);
-      await onSubmit(values);
+      // Ensure all required fields are present and properly typed
+      const userData: Omit<User, "id"> & { password?: string; sendCredentials?: boolean } = {
+        name: values.name,
+        email: values.email,
+        role: values.role,
+        department: values.department,
+        phoneNumber: values.phoneNumber,
+        skillLevel: values.skillLevel,
+        experience: values.experience,
+        experienceLevel: values.experienceLevel,
+        description: values.description,
+        isActive: values.isActive,
+        password: values.password,
+        sendCredentials: values.sendCredentials
+      };
+      await onSubmit(userData);
       form.reset();
       setCvFile(null);
       onOpenChange(false);
@@ -230,20 +244,6 @@ export function AddEmployeeDialog({ open, onOpenChange, onSubmit }: AddEmployeeD
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
-                name="skillName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Primary Skill</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. React, Accounting, etc." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="skillLevel"
                 render={({ field }) => (
                   <FormItem>
@@ -273,7 +273,13 @@ export function AddEmployeeDialog({ open, onOpenChange, onSubmit }: AddEmployeeD
                 <FormItem>
                   <FormLabel>Experience Level (years)</FormLabel>
                   <FormControl>
-                    <Input type="number" min="0" max="20" {...field} />
+                    <Input 
+                      type="number" 
+                      min="0" 
+                      max="20" 
+                      {...field}
+                      onChange={e => field.onChange(e.target.valueAsNumber)}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
