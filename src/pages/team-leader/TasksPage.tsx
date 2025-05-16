@@ -1,6 +1,5 @@
-
-import { useState } from "react";
-import { Task } from "@/types";
+import { useState, useEffect } from "react";
+import { Task, User } from "@/types";
 import { useAppContext } from "@/context/AppContext";
 import { TaskBoard } from "@/components/tasks/TaskBoard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "@/components/ui/use-toast";
 
 const taskFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -28,9 +28,89 @@ const taskFormSchema = z.object({
 
 type TaskFormValues = z.infer<typeof taskFormSchema>;
 
+const API_URL = 'http://localhost:5000/api';
+
 export default function TeamLeaderTasksPage() {
   const { currentUser, users, tasks, addTask, updateTask, deleteTask } = useAppContext();
+  const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<User[]>([]);
+  const [teamTasks, setTeamTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchTasks = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
+
+      const tasksResponse = await fetch(`${API_URL}/tasks/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!tasksResponse.ok) {
+        throw new Error('Failed to fetch tasks');
+      }
+
+      const tasks = await tasksResponse.json();
+      setTeamTasks(tasks);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load tasks",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fetchTeamMembers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
+
+      const membersResponse = await fetch(`${API_URL}/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!membersResponse.ok) {
+        throw new Error('Failed to fetch team members');
+      }
+
+      const allUsers = await membersResponse.json();
+      const departmentMembers = allUsers.filter(
+        (user: User) => user.department === currentUser?.department && user.role === "Employee"
+      );
+      setTeamMembers(departmentMembers);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load team members",
+        variant: "destructive"
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([fetchTeamMembers(), fetchTasks()]);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [currentUser, toast]);
 
   if (!currentUser || !currentUser.department) return null;
 
@@ -42,22 +122,6 @@ export default function TeamLeaderTasksPage() {
       assignedTo: "",
     },
   });
-
-  // Get all team members (employees) in the current user's department
-  const teamMembers = users.filter(
-    user => user.department === currentUser.department && user.role === "Employee"
-  );
-
-  // Get all tasks assigned by the team leader to their team members
-  const teamTasks = tasks.filter(
-    task => {
-      const assignedUser = users.find(user => user.id === task.assignedTo);
-      return (
-        task.assignedBy === currentUser.id && 
-        assignedUser?.department === currentUser.department
-      );
-    }
-  );
 
   const completedTasks = teamTasks.filter(task => task.status === "Completed").length;
   const inProgressTasks = teamTasks.filter(task => task.status === "In Progress").length;
@@ -71,18 +135,83 @@ export default function TeamLeaderTasksPage() {
       assignedBy: currentUser.id,
       status: "Todo",
       deadline: data.deadline,
+      progress: 0
     });
     setIsDialogOpen(false);
     form.reset();
   };
 
-  const handleEditTask = (updatedTask: Task) => {
-    updateTask(updatedTask);
+  const handleEditTask = async (updatedTask: Task) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
+
+      const response = await fetch(`${API_URL}/tasks/${updatedTask.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updatedTask)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+
+      // Update local state with the new task
+      setTeamTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === updatedTask.id ? updatedTask : task
+        )
+      );
+
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    if (window.confirm("Are you sure you want to delete this task?")) {
-      deleteTask(taskId);
+  const handleDeleteTask = async (taskId: string) => {
+    if (!window.confirm("Are you sure you want to delete this task?")) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
+
+      const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete task');
+      }
+
+      // Update local state by removing the deleted task
+      setTeamTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
+        variant: "destructive"
+      });
     }
   };
 
@@ -248,7 +377,7 @@ export default function TeamLeaderTasksPage() {
                   <h3 className="text-sm font-medium">Team Members</h3>
                   <div className="mt-2 space-y-2">
                     {teamMembers.map(member => {
-                      const memberTasks = tasks.filter(task => task.assignedTo === member.id);
+                      const memberTasks = teamTasks.filter(task => task.assignedTo === member.id);
                       const completedCount = memberTasks.filter(task => task.status === "Completed").length;
                       const progressPercentage = memberTasks.length > 0 
                         ? Math.round((completedCount / memberTasks.length) * 100) 
@@ -283,6 +412,7 @@ export default function TeamLeaderTasksPage() {
 
       <TaskBoard
         tasks={teamTasks}
+        teamMembers={teamMembers}
         canEdit={true}
         onEdit={handleEditTask}
         onDelete={handleDeleteTask}

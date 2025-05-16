@@ -1,474 +1,438 @@
-
 import { useState, useEffect } from "react";
-import { Task } from "@/types";
-import { useAppContext } from "@/context/AppContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Task, User } from "@/types";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { Plus, Edit, Trash2, Clock, CheckCircle2 } from "lucide-react";
-import { format } from "date-fns";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, 
-  DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/use-toast";
+import { CalendarIcon, Clock, CheckCircle, AlertCircle, MoreVertical, Trash2 } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast";
+import { useAppContext } from "@/context/AppContext";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+const API_URL = 'http://localhost:5000/api';
+
+const taskFormSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  assignedTo: z.string().min(1, "Please select an employee"),
+  deadline: z.date({ required_error: "Please select a deadline" }),
+});
+
+type TaskFormValues = z.infer<typeof taskFormSchema>;
 
 interface TaskBoardProps {
   tasks: Task[];
-  canEdit: boolean;
+  teamMembers: User[];
+  canEdit?: boolean;
   onEdit?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
 }
 
-interface TaskProgressData {
-  id: string;
-  progress: number;
-  notes: string;
-}
-
-export function TaskBoard({ tasks, canEdit, onEdit, onDelete }: TaskBoardProps) {
-  const { users, currentUser } = useAppContext();
+export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelete }: TaskBoardProps) {
+  const { currentUser } = useAppContext();
   const { toast } = useToast();
-  
-  const [todoTasks, setTodoTasks] = useState<Task[]>([]);
-  const [inProgressTasks, setInProgressTasks] = useState<Task[]>([]);
-  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [taskProgress, setTaskProgress] = useState<TaskProgressData[]>([]);
-  const [progressValue, setProgressValue] = useState(0);
-  const [progressNotes, setProgressNotes] = useState("");
-  const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
+  const [filteredTasks, setFilteredTasks] = useState<{
+    todo: Task[];
+    inProgress: Task[];
+    completed: Task[];
+  }>({
+    todo: [],
+    inProgress: [],
+    completed: []
+  });
 
-  // Determine if the current user can delete tasks (only team leaders and admins can delete)
-  const canDeleteTasks = currentUser?.role === "TeamLeader" || currentUser?.role === "Admin";
+  const form = useForm<TaskFormValues>({
+    resolver: zodResolver(taskFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      assignedTo: "",
+    },
+  });
 
   useEffect(() => {
-    setTodoTasks(tasks.filter(task => task.status === "Todo"));
-    setInProgressTasks(tasks.filter(task => task.status === "In Progress"));
-    setCompletedTasks(tasks.filter(task => task.status === "Completed"));
-    
-    // Initialize task progress data if not already present
-    const initialTaskProgress = tasks.map(task => {
-      const existing = taskProgress.find(p => p.id === task.id);
-      if (existing) return existing;
-      
-      return {
-        id: task.id,
-        progress: task.status === "Completed" ? 100 : task.status === "In Progress" ? 50 : 0,
-        notes: ""
-      };
+    // Filter tasks by status
+    setFilteredTasks({
+      todo: tasks.filter(task => task.status === "Todo"),
+      inProgress: tasks.filter(task => task.status === "In Progress"),
+      completed: tasks.filter(task => task.status === "Completed")
     });
-    
-    setTaskProgress(initialTaskProgress);
   }, [tasks]);
   
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, taskId: string, status: string) => {
-    e.dataTransfer.setData("taskId", taskId);
-    e.dataTransfer.setData("sourceStatus", status);
-  };
+  const handleCreateTask = async (data: TaskFormValues) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
+      const response = await fetch(`${API_URL}/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: data.title,
+          description: data.description,
+          assignedTo: data.assignedTo,
+          deadline: data.deadline.toISOString(),
+          status: "Todo",
+          progress: 0
+        })
+      });
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetStatus: "Todo" | "In Progress" | "Completed") => {
-    e.preventDefault();
-    const taskId = e.dataTransfer.getData("taskId");
-    const sourceStatus = e.dataTransfer.getData("sourceStatus");
-    
-    if (sourceStatus === targetStatus) return;
-
-    // Find the task in the source list
-    let task: Task | undefined;
-    if (sourceStatus === "Todo") {
-      task = todoTasks.find(t => t.id === taskId);
-      if (task) setTodoTasks(todoTasks.filter(t => t.id !== taskId));
-    } else if (sourceStatus === "In Progress") {
-      task = inProgressTasks.find(t => t.id === taskId);
-      if (task) setInProgressTasks(inProgressTasks.filter(t => t.id !== taskId));
-    } else if (sourceStatus === "Completed") {
-      task = completedTasks.find(t => t.id === taskId);
-      if (task) setCompletedTasks(completedTasks.filter(t => t.id !== taskId));
-    }
-
-    // Add the task to the target list
-    if (task) {
-      const updatedTask: Task = { ...task, status: targetStatus };
-      if (targetStatus === "Todo") {
-        setTodoTasks([...todoTasks, updatedTask]);
-      } else if (targetStatus === "In Progress") {
-        setInProgressTasks([...inProgressTasks, updatedTask]);
-      } else if (targetStatus === "Completed") {
-        setCompletedTasks([...completedTasks, updatedTask]);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create task');
       }
+
+      const newTask = await response.json();
+      toast({
+        title: "Success",
+        description: "Task created successfully",
+      });
+      setIsDialogOpen(false);
+      form.reset();
       
-      // Update progress based on status
-      const newProgress = targetStatus === "Completed" ? 100 : targetStatus === "In Progress" ? 50 : 0;
-      updateTaskProgress(task.id, newProgress);
+      // Instead of reloading, update the tasks list
+      if (onEdit) {
+        onEdit(newTask);
+      }
+    } catch (error) {
+      console.error('Task creation error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create task",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateTaskStatus = async (taskId: string, newStatus: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
+
+      const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update task');
+      }
+
+      const updatedTask = await response.json();
+      toast({
+        title: "Success",
+        description: "Task status updated successfully",
+      });
       
-      // Notify parent if edit handler is provided
+      // Use onEdit callback instead of reloading
       if (onEdit) {
         onEdit(updatedTask);
       }
-    }
-  };
-
-  const getAssignedUserName = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    return user?.name || "Unknown";
-  };
-
-  const getDeadlineStatus = (deadline: Date) => {
-    const today = new Date();
-    const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (daysLeft < 0) {
-      return { label: "Overdue", className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100" };
-    } else if (daysLeft <= 2) {
-      return { label: `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`, className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100" };
-    } else {
-      return { label: `${daysLeft} days left`, className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" };
-    }
-  };
-
-  const getTaskProgress = (taskId: string) => {
-    const progress = taskProgress.find(p => p.id === taskId);
-    return progress?.progress || 0;
-  };
-
-  const updateTaskProgress = (taskId: string, progress: number, notes?: string) => {
-    setTaskProgress(prev => {
-      const existing = prev.find(p => p.id === taskId);
-      
-      if (existing) {
-        return prev.map(p => 
-          p.id === taskId ? { 
-            ...p, 
-            progress,
-            notes: notes !== undefined ? notes : p.notes
-          } : p
-        );
-      }
-      
-      return [...prev, { id: taskId, progress, notes: notes || "" }];
-    });
-    
-    // If a task reaches 100%, move it to completed
-    if (progress === 100) {
-      const task = [...todoTasks, ...inProgressTasks].find(t => t.id === taskId);
-      if (task && task.status !== "Completed") {
-        const updatedTask: Task = { ...task, status: "Completed" };
-        
-        // Remove from original list
-        if (task.status === "Todo") {
-          setTodoTasks(todoTasks.filter(t => t.id !== taskId));
-        } else if (task.status === "In Progress") {
-          setInProgressTasks(inProgressTasks.filter(t => t.id !== taskId));
-        }
-        
-        // Add to completed
-        setCompletedTasks([...completedTasks, updatedTask]);
-        
-        // Notify parent
-        if (onEdit) {
-          onEdit(updatedTask);
-        }
-        
-        // Show success toast
-        toast({
-          title: "Task completed!",
-          description: "Your task has been moved to the completed column.",
-        });
-      }
-    }
-  };
-
-  const openProgressDialog = (task: Task) => {
-    setSelectedTask(task);
-    const progress = taskProgress.find(p => p.id === task.id);
-    setProgressValue(progress?.progress || 0);
-    setProgressNotes(progress?.notes || "");
-    setIsProgressDialogOpen(true);
-  };
-
-  const handleSaveProgress = () => {
-    if (selectedTask) {
-      updateTaskProgress(selectedTask.id, progressValue, progressNotes);
-      
-      // If progress is 100%, update task status to Completed
-      if (progressValue === 100 && selectedTask.status !== "Completed") {
-        const updatedTask: Task = { ...selectedTask, status: "Completed" };
-        
-        // Remove from original list
-        if (selectedTask.status === "Todo") {
-          setTodoTasks(todoTasks.filter(t => t.id !== selectedTask.id));
-        } else if (selectedTask.status === "In Progress") {
-          setInProgressTasks(inProgressTasks.filter(t => t.id !== selectedTask.id));
-        }
-        
-        // Add to completed
-        setCompletedTasks([...completedTasks, updatedTask]);
-        
-        // Notify parent
-        if (onEdit) {
-          onEdit(updatedTask);
-        }
-      }
-      // If progress is > 0 but < 100%, update task status to In Progress
-      else if (progressValue > 0 && progressValue < 100 && selectedTask.status !== "In Progress") {
-        const updatedTask: Task = { ...selectedTask, status: "In Progress" };
-        
-        // Remove from original list
-        if (selectedTask.status === "Todo") {
-          setTodoTasks(todoTasks.filter(t => t.id !== selectedTask.id));
-        } else if (selectedTask.status === "Completed") {
-          setCompletedTasks(completedTasks.filter(t => t.id !== selectedTask.id));
-        }
-        
-        // Add to in progress
-        setInProgressTasks([...inProgressTasks, updatedTask]);
-        
-        // Notify parent
-        if (onEdit) {
-          onEdit(updatedTask);
-        }
-      }
-      
-      // Show success toast
+    } catch (error) {
       toast({
-        title: "Progress updated",
-        description: `Task progress updated to ${progressValue}%`,
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update task",
+        variant: "destructive"
       });
     }
-    setIsProgressDialogOpen(false);
   };
 
-  const TaskItem = ({ task }: { task: Task }) => {
-    const deadline = getDeadlineStatus(task.deadline);
-    const progress = getTaskProgress(task.id);
+  const handleDeleteTask = async (taskId: string) => {
+    if (!window.confirm("Are you sure you want to delete this task?")) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
+
+      const response = await fetch(`${API_URL}/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete task');
+      }
+
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
+      
+      // Use onDelete callback instead of reloading
+      if (onDelete) {
+        onDelete(taskId);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete task",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const TaskCard = ({ task }: { task: Task }) => {
+    const assignedUser = teamMembers.find(user => user.id === task.assignedTo);
+    const isOverdue = new Date(task.deadline) < new Date() && task.status !== "Completed";
 
     return (
-      <div
-        draggable={canEdit}
-        onDragStart={(e) => handleDragStart(e, task.id, task.status)}
-        className="p-3 mb-3 bg-card border rounded-md shadow-sm cursor-move"
-      >
-        <div className="flex justify-between items-start">
-          <h3 className="font-medium">{task.title}</h3>
-          {canEdit && (
-            <div className="flex space-x-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onEdit) onEdit(task);
-                }}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              
-              {/* Only show delete button if user can delete tasks */}
-              {canDeleteTasks && onDelete && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-7 w-7 text-destructive" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(task.id);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
+      <Card className="mb-4">
+        <CardHeader className="p-4">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-base">{task.title}</CardTitle>
+              <CardDescription className="text-xs">
+                Assigned to: {assignedUser?.name || 'Unknown'}
+              </CardDescription>
             </div>
-          )}
-        </div>
-        <p className="text-xs text-muted-foreground mt-1">{task.description}</p>
-        
-        {/* Progress indicator */}
-        <div className="mt-2">
-          <div className="flex justify-between items-center text-xs">
-            <span>Progress</span>
-            <span>{progress}%</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {task.status !== "Completed" && (
+                  <DropdownMenuItem onClick={() => handleUpdateTaskStatus(task.id, "Completed")}>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Mark as Completed
+                  </DropdownMenuItem>
+                )}
+                {task.status === "Todo" && (
+                  <DropdownMenuItem onClick={() => handleUpdateTaskStatus(task.id, "In Progress")}>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Start Progress
+                  </DropdownMenuItem>
+                )}
+                {canEdit && (
+                  <DropdownMenuItem 
+                    className="text-destructive"
+                    onClick={() => handleDeleteTask(task.id)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Task
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <Progress value={progress} className="h-2 mt-1" />
-        </div>
-        
-        <div className="mt-2 flex items-center text-xs text-muted-foreground">
-          <Clock className="h-3 w-3 mr-1" />
-          <span>Due: {format(task.deadline, "MMM d, yyyy")}</span>
-        </div>
-        <div className="mt-2 flex items-center justify-between">
-          <span className="text-xs">
-            Assigned to: {getAssignedUserName(task.assignedTo)}
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+            {task.description}
+          </p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Deadline:</span>
+              <span className={cn(
+                "font-medium",
+                isOverdue && "text-destructive"
+              )}>
+                {format(new Date(task.deadline), "MMM d, yyyy")}
+                {isOverdue && <AlertCircle className="ml-1 inline h-3 w-3" />}
           </span>
-          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${deadline.className}`}>
-            {deadline.label}
-          </span>
         </div>
-        
-        {/* Update Progress Button */}
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="w-full mt-2 text-xs"
-          onClick={(e) => {
-            e.stopPropagation();
-            openProgressDialog(task);
-          }}
-        >
-          {progress === 100 ? (
-            <>
-              <CheckCircle2 className="mr-1 h-3 w-3" /> Completed
-            </>
-          ) : (
-            <>
-              <Clock className="mr-1 h-3 w-3" /> Update Progress
-            </>
-          )}
-        </Button>
+            {task.progress !== undefined && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Progress:</span>
+                  <span className="font-medium">{task.progress}%</span>
+                </div>
+                <Progress value={task.progress} className="h-1" />
+              </div>
+            )}
       </div>
+        </CardContent>
+      </Card>
     );
   };
 
   return (
-    <>
+    <div className="space-y-6">
+      {canEdit && (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              Create New Task
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[550px]">
+            <DialogHeader>
+              <DialogTitle>Create New Task</DialogTitle>
+              <DialogDescription>
+                Assign a new task to a team member.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleCreateTask)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter task title" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Enter task details" rows={3} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="assignedTo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Assign To</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select team member" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {teamMembers.map((member) => (
+                            <SelectItem key={member.id} value={member.id.toString()}>
+                              {member.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="deadline"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Deadline</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            disabled={(date) => date < new Date()}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <DialogFooter>
+                  <Button type="submit">Create Task</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="pb-2 bg-blue-50 dark:bg-blue-900/20 rounded-t-lg">
+        <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <CardTitle>To Do</CardTitle>
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-800/30 dark:text-blue-200 text-xs font-medium">
-                {todoTasks.length}
+            <h3 className="font-semibold">To Do</h3>
+            <span className="text-sm text-muted-foreground">
+              {filteredTasks.todo.length} tasks
               </span>
             </div>
-          </CardHeader>
-          <CardContent 
-            className="p-3 mt-2 h-[600px] overflow-y-auto"
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, "Todo")}
-          >
-            {todoTasks.map(task => (
-              <TaskItem key={task.id} task={task} />
+          <div className="space-y-4">
+            {filteredTasks.todo.map(task => (
+              <TaskCard key={task.id} task={task} />
             ))}
-            {todoTasks.length === 0 && (
-              <div className="flex items-center justify-center h-20 border-2 border-dashed rounded-md border-muted text-muted-foreground">
-                No tasks
+          </div>
               </div>
-            )}
-            {canEdit && (
-              <Button variant="outline" className="w-full mt-2" size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                Add Task
-              </Button>
-            )}
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader className="pb-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-t-lg">
+        <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <CardTitle>In Progress</CardTitle>
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-200 text-xs font-medium">
-                {inProgressTasks.length}
+            <h3 className="font-semibold">In Progress</h3>
+            <span className="text-sm text-muted-foreground">
+              {filteredTasks.inProgress.length} tasks
               </span>
             </div>
-          </CardHeader>
-          <CardContent 
-            className="p-3 mt-2 h-[600px] overflow-y-auto"
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, "In Progress")}
-          >
-            {inProgressTasks.map(task => (
-              <TaskItem key={task.id} task={task} />
+          <div className="space-y-4">
+            {filteredTasks.inProgress.map(task => (
+              <TaskCard key={task.id} task={task} />
             ))}
-            {inProgressTasks.length === 0 && (
-              <div className="flex items-center justify-center h-20 border-2 border-dashed rounded-md border-muted text-muted-foreground">
-                No tasks in progress
+          </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader className="pb-2 bg-green-50 dark:bg-green-900/20 rounded-t-lg">
+        <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <CardTitle>Completed</CardTitle>
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-200 text-xs font-medium">
-                {completedTasks.length}
+            <h3 className="font-semibold">Completed</h3>
+            <span className="text-sm text-muted-foreground">
+              {filteredTasks.completed.length} tasks
               </span>
             </div>
-          </CardHeader>
-          <CardContent 
-            className="p-3 mt-2 h-[600px] overflow-y-auto"
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, "Completed")}
-          >
-            {completedTasks.map(task => (
-              <TaskItem key={task.id} task={task} />
+          <div className="space-y-4">
+            {filteredTasks.completed.map(task => (
+              <TaskCard key={task.id} task={task} />
             ))}
-            {completedTasks.length === 0 && (
-              <div className="flex items-center justify-center h-20 border-2 border-dashed rounded-md border-muted text-muted-foreground">
-                No completed tasks
+          </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Task Progress Dialog */}
-      <Dialog open={isProgressDialogOpen} onOpenChange={setIsProgressDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Update Task Progress</DialogTitle>
-            <DialogDescription>
-              Track and update your progress for this task.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="progress">Progress</Label>
-                <span className="text-sm font-medium">{progressValue}%</span>
-              </div>
-              <Slider 
-                id="progress"
-                value={[progressValue]} 
-                min={0} 
-                max={100} 
-                step={5}
-                onValueChange={(values) => setProgressValue(values[0])}
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Not Started</span>
-                <span>In Progress</span>
-                <span>Completed</span>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="notes">Progress Notes</Label>
-              <Textarea 
-                id="notes"
-                placeholder="Add details about your progress..."
-                value={progressNotes}
-                onChange={(e) => setProgressNotes(e.target.value)}
-                rows={4}
-              />
             </div>
           </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsProgressDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveProgress}>Save Progress</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
   );
 }

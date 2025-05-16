@@ -3,13 +3,13 @@ export type Department = "Admin" | "IT" | "Finance" | "Sales" | "Customer-Servic
 export type SkillLevel = "Beginner" | "Intermediate" | "Advanced";
 
 export interface User {
-  id: string;
+  id: number;
   name: string;
   email: string;
-  role: UserRole;
-  department?: Department;
+  role: 'Admin' | 'TeamLeader' | 'Employee';
+  department: string;
   phoneNumber?: string;
-  skillLevel?: SkillLevel;
+  skillLevel?: string;
   experience?: number;
   experienceLevel?: number;
   description?: string;
@@ -31,12 +31,16 @@ export interface Task {
   title: string;
   description: string;
   documentation?: string;
-  assignedTo: string;
-  assignedBy: string;
-  status: "Todo" | "In Progress" | "Completed";
-  deadline: Date;
-  createdAt: Date;
+  assignedTo: number;
+  assignedBy: number;
+  assigned_to_name?: string;
+  assigned_to_email?: string;
+  assigned_by_name?: string;
+  status: 'Todo' | 'In Progress' | 'Completed';
   progress?: number;
+  deadline: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Course {

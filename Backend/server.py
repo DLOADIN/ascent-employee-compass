@@ -1222,6 +1222,274 @@ def get_team_leader_dashboard(current_user_id):
         cursor.close()
         conn.close()
 
+@app.route('/api/tasks', methods=['POST'])
+@token_required
+def create_task(current_user_id):
+    """Create a new task"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verify user is a team leader
+        cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        
+        if not user or user['role'] != 'TeamLeader':
+            return jsonify({'error': 'Only team leaders can create tasks'}), 403
+
+        data = request.get_json()
+        required_fields = ['title', 'description', 'assignedTo', 'deadline']
+        
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        # Convert assignedTo to integer
+        try:
+            assigned_to = int(data['assignedTo'])
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid assignedTo value'}), 400
+
+        # Verify assigned user exists and is in the same department
+        cursor.execute('SELECT id, department FROM users WHERE id = %s', (assigned_to,))
+        assigned_user = cursor.fetchone()
+        
+        if not assigned_user or assigned_user['department'] != user['department']:
+            return jsonify({'error': 'Invalid team member assignment'}), 400
+
+        # Create the task with progress field
+        cursor.execute('''
+            INSERT INTO tasks (title, description, assigned_to, assigned_by, status, deadline, progress)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ''', (
+            data['title'],
+            data['description'],
+            assigned_to,
+            current_user_id,
+            'Todo',
+            data['deadline'],
+            data.get('progress', 0)  # Default to 0 if not provided
+        ))
+        conn.commit()
+        
+        # Get the created task with assigned user info
+        task_id = cursor.lastrowid
+        cursor.execute('''
+            SELECT t.*, 
+                   u1.name as assigned_to_name, 
+                   u1.email as assigned_to_email,
+                   u2.name as assigned_by_name
+            FROM tasks t
+            JOIN users u1 ON t.assigned_to = u1.id
+            JOIN users u2 ON t.assigned_by = u2.id
+            WHERE t.id = %s
+        ''', (task_id,))
+        
+        new_task = cursor.fetchone()
+        return jsonify(new_task), 201
+
+    except Exception as e:
+        logger.error(f"Error creating task: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/tasks/<int:task_id>', methods=['PUT'])
+@token_required
+def update_task(current_user_id, task_id):
+    """Update a task's status or details"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get current user's role and department
+        cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
+        current_user = cursor.fetchone()
+        
+        # Get the task
+        cursor.execute('''
+            SELECT t.*, u.department as assigned_user_department
+            FROM tasks t
+            JOIN users u ON t.assigned_to = u.id
+            WHERE t.id = %s
+        ''', (task_id,))
+        task = cursor.fetchone()
+        
+        if not task:
+            return jsonify({'error': 'Task not found'}), 404
+
+        # Check permissions
+        is_team_leader = current_user['role'] == 'TeamLeader'
+        is_assigned_employee = current_user['role'] == 'Employee' and task['assigned_to'] == current_user_id
+        is_same_department = current_user['department'] == task['assigned_user_department']
+
+        if not (is_team_leader or is_assigned_employee) or not is_same_department:
+            return jsonify({'error': 'Unauthorized to update this task'}), 403
+
+        data = request.get_json()
+        update_fields = []
+        update_values = []
+
+        # Team leaders can update all fields
+        if is_team_leader:
+            allowed_fields = {
+                'title': 'title',
+                'description': 'description',
+                'assignedTo': 'assigned_to',
+                'status': 'status',
+                'progress': 'progress',
+                'deadline': 'deadline'
+            }
+            
+            for field, column in allowed_fields.items():
+                if field in data:
+                    update_fields.append(f"{column} = %s")
+                    update_values.append(data[field])
+        
+        # Employees can only update status and progress
+        elif is_assigned_employee:
+            if 'status' in data:
+                update_fields.append("status = %s")
+                update_values.append(data['status'])
+            if 'progress' in data:
+                update_fields.append("progress = %s")
+                update_values.append(data['progress'])
+
+        if not update_fields:
+            return jsonify({'error': 'No valid fields to update'}), 400
+
+        # Add task_id to values
+        update_values.append(task_id)
+        
+        # Update the task
+        query = f"UPDATE tasks SET {', '.join(update_fields)} WHERE id = %s"
+        cursor.execute(query, tuple(update_values))
+        conn.commit()
+
+        # Get updated task
+        cursor.execute('''
+            SELECT t.*, 
+                   u1.name as assigned_to_name, 
+                   u1.email as assigned_to_email,
+                   u2.name as assigned_by_name
+            FROM tasks t
+            JOIN users u1 ON t.assigned_to = u1.id
+            JOIN users u2 ON t.assigned_by = u2.id
+            WHERE t.id = %s
+        ''', (task_id,))
+        
+        updated_task = cursor.fetchone()
+        return jsonify(updated_task)
+
+    except Exception as e:
+        logger.error(f"Error updating task: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/tasks/<int:task_id>', methods=['DELETE'])
+@token_required
+def delete_task(current_user_id, task_id):
+    """Delete a task"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verify user is a team leader
+        cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        
+        if not user or user['role'] != 'TeamLeader':
+            return jsonify({'error': 'Only team leaders can delete tasks'}), 403
+
+        # Verify task exists and was created by this team leader
+        cursor.execute('SELECT assigned_by FROM tasks WHERE id = %s', (task_id,))
+        task = cursor.fetchone()
+        
+        if not task:
+            return jsonify({'error': 'Task not found'}), 404
+            
+        if task['assigned_by'] != current_user_id:
+            return jsonify({'error': 'Unauthorized to delete this task'}), 403
+
+        # Delete the task
+        cursor.execute('DELETE FROM tasks WHERE id = %s', (task_id,))
+        conn.commit()
+        
+        return jsonify({'message': 'Task deleted successfully'})
+
+    except Exception as e:
+        logger.error(f"Error deleting task: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/tasks/status', methods=['GET'])
+@token_required
+def get_tasks_by_status(current_user_id):
+    """Get tasks filtered by status for the current user"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get user's role and department
+        cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        status = request.args.get('status')
+        if status and status not in ['Todo', 'In Progress', 'Completed']:
+            return jsonify({'error': 'Invalid status'}), 400
+
+        # Build query based on user role
+        if user['role'] == 'TeamLeader':
+            query = '''
+                SELECT t.*, 
+                       u1.name as assigned_to_name, 
+                       u1.email as assigned_to_email,
+                       u2.name as assigned_by_name
+                FROM tasks t
+                JOIN users u1 ON t.assigned_to = u1.id
+                JOIN users u2 ON t.assigned_by = u2.id
+                WHERE u1.department = %s
+            '''
+            params = [user['department']]
+        else:  # Employee
+            query = '''
+                SELECT t.*, 
+                       u1.name as assigned_to_name, 
+                       u1.email as assigned_to_email,
+                       u2.name as assigned_by_name
+                FROM tasks t
+                JOIN users u1 ON t.assigned_to = u1.id
+                JOIN users u2 ON t.assigned_by = u2.id
+                WHERE t.assigned_to = %s
+            '''
+            params = [current_user_id]
+
+        # Add status filter if provided
+        if status:
+            query += ' AND t.status = %s'
+            params.append(status)
+
+        query += ' ORDER BY t.deadline DESC'
+        
+        cursor.execute(query, tuple(params))
+        tasks = cursor.fetchall()
+        
+        return jsonify(tasks)
+
+    except Exception as e:
+        logger.error(f"Error fetching tasks: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 if __name__ == '__main__':
     # Log the server startup
     app.run(debug=True, port=5000)
