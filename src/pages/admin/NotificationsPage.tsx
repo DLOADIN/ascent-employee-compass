@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Bell, Calendar, Trash2, Filter } from "lucide-react";
+import { Bell, Calendar, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Notification, Department } from "@/types";
 import { format, isAfter, isBefore, startOfDay, subDays } from "date-fns";
@@ -34,29 +34,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import axios from "axios";
-
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    title: "New Job Opening: Senior Developer",
-    message: "We have a new job opening for Senior Developer in the IT department.",
-    userId: "all-it",
-    isRead: false,
-    createdAt: new Date(2024, 4, 1),
-    type: "job",
-    link: "/jobs/1",
-  },
-  {
-    id: "2",
-    title: "New Course Available: Financial Management",
-    message: "New course on Financial Management is now available for the Finance department.",
-    userId: "all-finance",
-    isRead: true,
-    createdAt: new Date(2024, 4, 2),
-    type: "course",
-    link: "/courses/2",
-  },
-];
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -81,16 +58,23 @@ const NotificationsPage = () => {
 
   const fetchNotifications = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
       const { data } = await axios.get<Notification[]>('http://localhost:5000/api/notifications', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setNotifications(data);
-    } catch (error) {
+      
+      // Sort notifications by date, most recent first
+      const sortedNotifications = data.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      setNotifications(sortedNotifications);
+    } catch (error: any) {
       console.error('Error fetching notifications:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch notifications",
+        description: error.response?.data?.message || "Failed to fetch notifications",
         variant: "destructive",
       });
     } finally {
@@ -102,7 +86,13 @@ const NotificationsPage = () => {
   const filteredNotifications = notifications.filter(notification => {
     if (dateFilterType === "all") return true;
     
-    const notificationDate = startOfDay(new Date(notification.createdAt));
+    // Ensure we have a valid date before parsing
+    const createdAt = notification.createdAt ? new Date(notification.createdAt) : null;
+    if (!createdAt || isNaN(createdAt.getTime())) {
+      return false;
+    }
+    
+    const notificationDate = startOfDay(createdAt);
     const today = startOfDay(new Date());
     
     switch (dateFilterType) {
@@ -139,21 +129,23 @@ const NotificationsPage = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const { data } = await axios.post<Notification>(
+      const notificationData = {
+        title: title.trim(),
+        message: message.trim(),
+        type: notificationType,
+        department: department === "all" ? null : department
+      };
+
+      await axios.post(
         'http://localhost:5000/api/notifications',
-        {
-          title,
-          message,
-          department: department === "all" ? null : department,
-          type: notificationType,
-        },
+        notificationData,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
 
-      // Update notifications list
-      setNotifications([data, ...notifications]);
+      // Refresh notifications list
+      await fetchNotifications();
       
       // Reset form
       setTitle("");
@@ -166,6 +158,7 @@ const NotificationsPage = () => {
         description: "Notification sent successfully",
       });
     } catch (error: any) {
+      console.error('Error sending notification:', error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to send notification",
@@ -187,12 +180,15 @@ const NotificationsPage = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        setNotifications(notifications.filter(n => n.id !== selectedNotification));
+        // Remove the deleted notification and fetch latest list
+        await fetchNotifications();
+        
         toast({
           title: "Success",
           description: "Notification deleted successfully",
         });
       } catch (error: any) {
+        console.error('Error deleting notification:', error);
         toast({
           title: "Error",
           description: error.response?.data?.message || "Failed to delete notification",
@@ -200,6 +196,7 @@ const NotificationsPage = () => {
         });
       } finally {
         setDeleteDialogOpen(false);
+        setSelectedNotification(null);
       }
     }
   };
@@ -340,7 +337,6 @@ const NotificationsPage = () => {
                         selected={startDate}
                         onSelect={setStartDate}
                         initialFocus
-                        className={cn("p-3 pointer-events-auto")}
                       />
                     </PopoverContent>
                   </Popover>
@@ -359,7 +355,6 @@ const NotificationsPage = () => {
                         onSelect={setEndDate}
                         initialFocus
                         disabled={(date) => startDate ? isBefore(date, startDate) : false}
-                        className={cn("p-3 pointer-events-auto")}
                       />
                     </PopoverContent>
                   </Popover>
@@ -382,35 +377,43 @@ const NotificationsPage = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredNotifications.map((notification) => (
-                      <TableRow key={notification.id}>
-                        <TableCell>
-                          <div className="font-medium">{notification.title}</div>
-                          <div className="text-sm text-muted-foreground line-clamp-1">
-                            {notification.message}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={notification.type === "job" ? "default" : 
-                                        notification.type === "course" ? "secondary" :
-                                        "outline"}>
-                            {notification.type.charAt(0).toUpperCase() + notification.type.slice(1)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {format(notification.createdAt, "MMM d, yyyy")}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteClick(notification.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredNotifications.map((notification) => {
+                      // Ensure we have a valid date
+                      const createdAt = notification.createdAt ? new Date(notification.createdAt) : null;
+                      const formattedDate = createdAt && !isNaN(createdAt.getTime()) 
+                        ? format(createdAt, "MMM d, yyyy")
+                        : "Invalid date";
+
+                      return (
+                        <TableRow key={notification.id}>
+                          <TableCell>
+                            <div className="font-medium">{notification.title}</div>
+                            <div className="text-sm text-muted-foreground line-clamp-1">
+                              {notification.message}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={notification.type === "job" ? "default" : 
+                                          notification.type === "course" ? "secondary" :
+                                          "outline"}>
+                              {notification.type.charAt(0).toUpperCase() + notification.type.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {formattedDate}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteClick(notification.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}

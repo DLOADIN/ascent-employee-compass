@@ -266,7 +266,7 @@ const TeamLeadersPage = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead className="hidden md:table-cell">Department</TableHead>
-                  <TableHead className="hidden lg:table-cell">Phone</TableHead>
+                  {/* <TableHead className="hidden lg:table-cell">Phone</TableHead> */}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -283,7 +283,7 @@ const TeamLeadersPage = () => {
                       <TableCell>{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell className="hidden md:table-cell">{user.department || "N/A"}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{user.phoneNumber}</TableCell>
+                      {/* <TableCell className="hidden lg:table-cell">{user.phoneNumber}</TableCell> */}
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button

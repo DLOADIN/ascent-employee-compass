@@ -682,6 +682,144 @@ def get_dashboard_stats(current_user_id):
         cursor.close()
         conn.close()
 
+@app.route('/api/notifications', methods=['GET'])
+@token_required
+def get_notifications(current_user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get user's role and department
+        cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
+        current_user = cursor.fetchone()
+        
+        # Build query based on user role
+        if current_user['role'] == 'Admin':
+            cursor.execute('''
+                SELECT n.*, u.name as user_name, u.department 
+                FROM notifications n
+                LEFT JOIN users u ON n.user_id = u.id
+                ORDER BY n.created_at DESC
+                LIMIT 10
+            ''')
+        else:
+            # For non-admin users, get notifications for their department or directed to them
+            cursor.execute('''
+                SELECT n.*, u.name as user_name, u.department 
+                FROM notifications n
+                LEFT JOIN users u ON n.user_id = u.id
+                WHERE n.user_id = %s OR u.department = %s
+                ORDER BY n.created_at DESC
+                LIMIT 10
+            ''', (current_user_id, current_user['department']))
+        
+        notifications = cursor.fetchall()
+        
+        # Convert datetime objects to ISO format strings
+        for notification in notifications:
+            notification['created_at'] = notification['created_at'].isoformat()
+            
+        return jsonify(notifications)
+    
+    except Exception as e:
+        logger.error(f"Error fetching notifications: {str(e)}")
+        return jsonify({'message': 'Error fetching notifications'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/notifications', methods=['POST'])
+@token_required
+def create_notification(current_user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Check if user is admin or team leader
+        cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+        current_user = cursor.fetchone()
+        
+        if current_user['role'] not in ['Admin', 'TeamLeader']:
+            return jsonify({'message': 'Unauthorized to create notifications'}), 403
+        
+        data = request.get_json()
+        required_fields = ['title', 'message', 'type']
+        
+        if not all(field in data for field in required_fields):
+            return jsonify({'message': 'Missing required fields'}), 400
+            
+        # Insert notification
+        cursor.execute('''
+            INSERT INTO notifications (title, message, user_id, type, link)
+            VALUES (%s, %s, %s, %s, %s)
+        ''', (
+            data['title'],
+            data['message'],
+            current_user_id,
+            data['type'],
+            data.get('link')
+        ))
+        conn.commit()
+        
+        # Get the created notification
+        notification_id = cursor.lastrowid
+        cursor.execute('''
+            SELECT n.*, u.name as user_name, u.department 
+            FROM notifications n
+            LEFT JOIN users u ON n.user_id = u.id
+            WHERE n.id = %s
+        ''', (notification_id,))
+        
+        new_notification = cursor.fetchone()
+        new_notification['created_at'] = new_notification['created_at'].isoformat()
+        
+        return jsonify(new_notification), 201
+        
+    except Exception as e:
+        logger.error(f"Error creating notification: {str(e)}")
+        return jsonify({'message': 'Error creating notification'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/notifications/<int:notification_id>', methods=['DELETE'])
+@token_required
+def delete_notification(current_user_id, notification_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Check if user is admin or the notification creator
+        cursor.execute('''
+            SELECT n.user_id, u.role 
+            FROM notifications n
+            JOIN users u ON u.id = %s
+            WHERE n.id = %s
+        ''', (current_user_id, notification_id))
+        result = cursor.fetchone()
+        
+        if not result:
+            return jsonify({'message': 'Notification not found'}), 404
+            
+        if result['role'] != 'Admin' and result['user_id'] != current_user_id:
+            return jsonify({'message': 'Unauthorized to delete this notification'}), 403
+        
+        # Delete the notification
+        cursor.execute('DELETE FROM notifications WHERE id = %s', (notification_id,))
+        conn.commit()
+        
+        if cursor.rowcount == 0:
+            return jsonify({'message': 'Notification not found'}), 404
+            
+        return jsonify({'message': 'Notification deleted successfully'})
+        
+    except Exception as e:
+        logger.error(f"Error deleting notification: {str(e)}")
+        return jsonify({'message': 'Error deleting notification'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 if __name__ == '__main__':
     # Log the server startup
     app.run(debug=True, port=5000)

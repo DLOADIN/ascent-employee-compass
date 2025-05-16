@@ -173,8 +173,8 @@ const EmployeesPage = () => {
       );
 
       if (response.data && response.data.user) {
-        // Transform the response data to match our User type
-        const transformedUser: User = {
+      // Transform the response data to match our User type
+      const transformedUser: User = {
           id: userId,
           name: response.data.user.name,
           email: response.data.user.email,
@@ -189,7 +189,7 @@ const EmployeesPage = () => {
           isActive: Boolean(response.data.user.is_active),
           createdAt: response.data.user.created_at,
           updatedAt: response.data.user.updated_at
-        };
+      };
 
         // Update the employees list immediately
         setEmployees(prevEmployees => 
@@ -197,15 +197,15 @@ const EmployeesPage = () => {
         );
 
         // Close the edit dialog
-        setIsEditDialogOpen(false);
+      setIsEditDialogOpen(false);
         setSelectedUser(null);
 
         // Show success toast
-        toast({
-          title: "Success",
-          description: "Employee updated successfully",
+      toast({
+        title: "Success",
+        description: "Employee updated successfully",
           variant: "default"
-        });
+      });
 
         // Refresh the list to ensure we have the latest data
         await fetchEmployees();

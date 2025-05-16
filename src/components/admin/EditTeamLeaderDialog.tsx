@@ -87,10 +87,10 @@ export function EditTeamLeaderDialog({
           .map(skill => skill.trim())
           .filter(skill => skill.length > 0)
           .map(skill => ({
-            id: crypto.randomUUID(),
-            name: skill,
-            level: data.skillLevel
-          }))
+          id: crypto.randomUUID(),
+          name: skill,
+          level: data.skillLevel
+        }))
       };
 
       await handleSubmit(formattedData);
