@@ -69,7 +69,7 @@ const SettingsPage = () => {
     const token = localStorage.getItem('token');
     
     try {
-      const response = await fetch(`${API_URL}/team-leader/update-profile`, {
+      const response = await fetch(`${API_URL}/team-leader/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -83,11 +83,11 @@ const SettingsPage = () => {
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update profile');
+      }
 
       // Update local user state
       updateCurrentUser({
@@ -117,11 +117,21 @@ const SettingsPage = () => {
 
   const onPasswordSubmit = async (data: PasswordFormValues) => {
     setIsChangingPassword(true);
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      console.error('No authentication token found');
+      toast({
+        title: "Error",
+        description: "Authentication token missing",
+        variant: "destructive"
+      });
+      setIsChangingPassword(false);
+      return;
+    }
+    
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
+      console.log('Attempting password update with token:', token.substring(0, 20) + '...');
       
       const response = await fetch(`${API_URL}/team-leader/password`, {
         method: 'PUT',
@@ -135,33 +145,26 @@ const SettingsPage = () => {
         })
       });
 
-      let result;
-      try {
-        result = await response.json();
-      } catch (e) {
-        throw new Error('Invalid response from server');
-      }
+      console.log('Password update response status:', response.status);
+      const result = await response.json();
+      console.log('Password update response:', result);
 
       if (!response.ok) {
-        throw new Error(result.message || 'Failed to change password');
-      }
-
-      if (!result.success) {
-        throw new Error(result.message || 'Password change failed');
+        throw new Error(result.error || 'Failed to change password');
       }
 
       toast({
-        title: "Password changed",
-        description: result.message || "Your password has been changed successfully.",
+        title: "Success",
+        description: "Password changed successfully"
       });
       
       passwordForm.reset();
     } catch (error) {
-      console.error('Password change error:', error);
+      console.error('Password change failed:', error);
       toast({
-        title: "Password change failed",
+        title: "Error",
         description: error instanceof Error ? error.message : "Failed to change password",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsChangingPassword(false);
@@ -169,12 +172,9 @@ const SettingsPage = () => {
   };
 
   const handleDeleteAccount = async () => {
+    const token = localStorage.getItem('token');
+    
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-      // const response = await fetch(`${API_URL}/team-leader/update-profile`, {
       const response = await fetch(`${API_URL}/team-leader/account`, {
         method: 'DELETE',
         headers: {
@@ -182,35 +182,25 @@ const SettingsPage = () => {
         }
       });
 
-      let result;
-      try {
-        result = await response.json();
-      } catch (e) {
-        throw new Error('Invalid response from server');
-      }
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || 'Failed to delete account');
-      }
-
-      if (!result.success) {
-        throw new Error(result.message || 'Account deletion failed');
+        throw new Error(result.error || 'Failed to delete account');
       }
 
       toast({
-        title: "Account deleted",
-        description: result.message || "Your account has been deleted. You will be logged out now.",
+        title: "Success",
+        description: "Account deleted successfully"
       });
       
       setIsConfirmDialogOpen(false);
-      // Logout the user
       logout();
     } catch (error) {
-      console.error('Account deletion error:', error);
+      console.error('Account deletion failed:', error);
       toast({
-        title: "Deletion failed",
+        title: "Error",
         description: error instanceof Error ? error.message : "Failed to delete account",
-        variant: "destructive",
+        variant: "destructive"
       });
       setIsConfirmDialogOpen(false);
     }
