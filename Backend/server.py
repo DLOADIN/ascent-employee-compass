@@ -1059,6 +1059,169 @@ def delete_team_leader_account(current_user_id):
         cursor.close()
         conn.close()
 
+@app.route('/api/team-leader/dashboard', methods=['GET'])
+@token_required
+def get_team_leader_dashboard(current_user_id):
+    """Get dashboard data for team leader"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verify user is a team leader and get their department
+        cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        
+        if not user or user['role'] != 'TeamLeader':
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        # Get team members (employees in the department)
+        cursor.execute('''
+            SELECT id, name, email, phone_number, skill_level, experience, 
+                   experience_level, description, profile_image_url, is_active
+            FROM users 
+            WHERE department = %s AND role = 'Employee'
+        ''', (user['department'],))
+        team_members = cursor.fetchall()
+
+        # Get department tasks with correct column names
+        cursor.execute('''
+            SELECT tasks.*, users.name as assigned_to_name, users.email as assigned_to_email
+            FROM tasks
+            INNER JOIN users ON tasks.assigned_to = users.id
+            WHERE users.department = %s
+            ORDER BY tasks.deadline DESC
+        ''', (user['department'],))
+        department_tasks = cursor.fetchall()
+
+        # Get task statistics with proper NULL handling
+        cursor.execute('''
+            SELECT 
+                COALESCE(COUNT(*), 0) as total_tasks,
+                COALESCE(SUM(CASE WHEN tasks.status = 'Completed' THEN 1 ELSE 0 END), 0) as completed_tasks,
+                COALESCE(SUM(CASE WHEN tasks.status = 'In Progress' THEN 1 ELSE 0 END), 0) as in_progress_tasks,
+                COALESCE(SUM(CASE WHEN tasks.status = 'Todo' THEN 1 ELSE 0 END), 0) as todo_tasks
+            FROM tasks
+            INNER JOIN users ON tasks.assigned_to = users.id
+            WHERE users.department = %s
+        ''', (user['department'],))
+        task_stats = cursor.fetchone()
+
+        # Ensure task_stats has default values if NULL
+        if not task_stats:
+            task_stats = {
+                'total_tasks': 0,
+                'completed_tasks': 0,
+                'in_progress_tasks': 0,
+                'todo_tasks': 0
+            }
+        else:
+            # Convert any remaining NULL values to 0
+            task_stats = {
+                'total_tasks': task_stats['total_tasks'] or 0,
+                'completed_tasks': task_stats['completed_tasks'] or 0,
+                'in_progress_tasks': task_stats['in_progress_tasks'] or 0,
+                'todo_tasks': task_stats['todo_tasks'] or 0
+            }
+
+        # Get department courses
+        cursor.execute('''
+            SELECT c.*, 
+                   COUNT(ce.user_id) as enrolled_count
+            FROM courses c
+            LEFT JOIN course_enrollments ce ON c.id = ce.course_id
+            WHERE c.department = %s
+            GROUP BY c.id
+        ''', (user['department'],))
+        department_courses = cursor.fetchall()
+
+        # Get performance metrics for each team member
+        performance_metrics = []
+        for member in team_members:
+            # Get task completion stats with proper NULL handling
+            cursor.execute('''
+                SELECT 
+                    COALESCE(COUNT(*), 0) as total_tasks,
+                    COALESCE(SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END), 0) as completed_tasks
+                FROM tasks
+                WHERE assigned_to = %s
+            ''', (member['id'],))
+            member_task_stats = cursor.fetchone()
+
+            # Get course enrollment stats
+            cursor.execute('''
+                SELECT COALESCE(COUNT(*), 0) as enrolled_courses
+                FROM course_enrollments ce
+                JOIN courses c ON ce.course_id = c.id
+                WHERE ce.user_id = %s AND c.department = %s
+            ''', (member['id'], user['department']))
+            course_stats = cursor.fetchone()
+
+            total_tasks = member_task_stats['total_tasks'] or 0
+            completed_tasks = member_task_stats['completed_tasks'] or 0
+            enrolled_courses = course_stats['enrolled_courses'] or 0
+            total_courses = len(department_courses)
+
+            task_completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+            course_enrollment_rate = (enrolled_courses / total_courses * 100) if total_courses > 0 else 0
+            overall_rating = (task_completion_rate + course_enrollment_rate) / 2
+
+            performance_metrics.append({
+                'id': member['id'],
+                'name': member['name'],
+                'email': member['email'],
+                'taskStats': {
+                    'completed': completed_tasks,
+                    'total': total_tasks,
+                    'completionRate': round(task_completion_rate, 1)
+                },
+                'courseStats': {
+                    'enrolled': enrolled_courses,
+                    'total': total_courses,
+                    'enrollmentRate': round(course_enrollment_rate, 1)
+                },
+                'overallRating': round(overall_rating, 1)
+            })
+
+        # Sort performance metrics by overall rating
+        performance_metrics.sort(key=lambda x: x['overallRating'], reverse=True)
+
+        # Get best and worst performers
+        best_performer = performance_metrics[0] if performance_metrics else None
+        worst_performer = performance_metrics[-1] if performance_metrics else None
+
+        dashboard_data = {
+            'department': user['department'],
+            'teamMembers': {
+                'total': len(team_members),
+                'list': team_members
+            },
+            'tasks': {
+                'total': task_stats['total_tasks'],
+                'completed': task_stats['completed_tasks'],
+                'inProgress': task_stats['in_progress_tasks'],
+                'todo': task_stats['todo_tasks'],
+                'list': department_tasks
+            },
+            'courses': {
+                'total': len(department_courses),
+                'list': department_courses
+            },
+            'performance': {
+                'metrics': performance_metrics,
+                'bestPerformer': best_performer,
+                'worstPerformer': worst_performer
+            }
+        }
+
+        return jsonify(dashboard_data)
+
+    except Exception as e:
+        logger.error(f"Error fetching dashboard data: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 if __name__ == '__main__':
     # Log the server startup
     app.run(debug=True, port=5000)

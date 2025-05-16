@@ -1,78 +1,97 @@
-
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAppContext } from "@/context/AppContext";
 import { BarChart, PieChart, Bar, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { FileText, BookOpen, Send, Award } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+
+const API_URL = 'http://localhost:5000/api';
+
+interface DashboardData {
+  department: string;
+  teamMembers: {
+    total: number;
+    list: any[];
+  };
+  tasks: {
+    total: number;
+    completed: number;
+    inProgress: number;
+    todo: number;
+    list: any[];
+  };
+  courses: {
+    total: number;
+    list: any[];
+  };
+  performance: {
+    metrics: any[];
+    bestPerformer: any;
+    worstPerformer: any;
+  };
+}
 
 export default function TeamLeaderDashboard() {
-  const { currentUser, users, tasks, courses } = useAppContext();
+  const { currentUser } = useAppContext();
+  const { toast } = useToast();
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!currentUser || !currentUser.department) return null;
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!currentUser) return;
 
-  const teamMembers = users.filter(
-    user => user.department === currentUser.department && user.role === "Employee"
-  );
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('No authentication token found');
 
-  const departmentTasks = tasks.filter(
-    task => {
-      const assignedUser = users.find(user => user.id === task.assignedTo);
-      return assignedUser?.department === currentUser.department;
-    }
-  );
+        const response = await fetch(`${API_URL}/team-leader/dashboard`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
 
-  const completedTasks = departmentTasks.filter(task => task.status === "Completed").length;
-  const inProgressTasks = departmentTasks.filter(task => task.status === "In Progress").length;
-  const todoTasks = departmentTasks.filter(task => task.status === "Todo").length;
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
 
-  const departmentCourses = courses.filter(
-    course => course.department === currentUser.department
-  );
-
-  const taskPerformance = teamMembers.map(member => {
-    const memberTasks = departmentTasks.filter(task => task.assignedTo === member.id);
-    const completedCount = memberTasks.filter(task => task.status === "Completed").length;
-    const percentage = memberTasks.length > 0 
-      ? Math.round((completedCount / memberTasks.length) * 100) 
-      : 0;
-    
-    return {
-      name: member.name,
-      completedTasks: completedCount,
-      totalTasks: memberTasks.length,
-      percentage
+        const data = await response.json();
+        setDashboardData(data);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
-  }).sort((a, b) => b.percentage - a.percentage);
 
-  const courseEnrollments = teamMembers.map(member => {
-    const enrolledCourses = departmentCourses.filter(
-      course => course.enrolledUsers.includes(member.id)
-    ).length;
-    
-    return {
-      name: member.name,
-      enrolledCourses,
-      totalCourses: departmentCourses.length,
-      percentage: departmentCourses.length > 0 
-        ? Math.round((enrolledCourses / departmentCourses.length) * 100)
-        : 0
-    };
-  }).sort((a, b) => b.percentage - a.percentage);
+    fetchDashboardData();
+  }, [currentUser, toast]);
+
+  if (!currentUser || !dashboardData) return null;
 
   const taskData = [
-    { name: "Completed", value: completedTasks },
-    { name: "In Progress", value: inProgressTasks },
-    { name: "Todo", value: todoTasks },
+    { name: "Completed", value: dashboardData.tasks.completed },
+    { name: "In Progress", value: dashboardData.tasks.inProgress },
+    { name: "Todo", value: dashboardData.tasks.todo },
   ];
 
-  const bestPerformer = taskPerformance.length > 0 ? taskPerformance[0] : null;
-  const worstPerformer = taskPerformance.length > 0 ? taskPerformance[taskPerformance.length - 1] : null;
+  const performanceData = dashboardData.performance.metrics.map(metric => ({
+    name: metric.name,
+    completed: metric.taskStats.completed,
+    total: metric.taskStats.total
+  }));
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Team Leader Dashboard</h1>
       <p className="text-muted-foreground">
-        {currentUser.department} Department - Overview and Performance
+        {dashboardData.department} Department - Overview and Performance
       </p>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -81,9 +100,9 @@ export default function TeamLeaderDashboard() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Team Members</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{teamMembers.length}</div>
+            <div className="text-2xl font-bold">{dashboardData.teamMembers.total}</div>
             <p className="text-xs text-muted-foreground mt-2">
-              In {currentUser.department} Department
+              In {dashboardData.department} Department
             </p>
           </CardContent>
         </Card>
@@ -93,9 +112,9 @@ export default function TeamLeaderDashboard() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Tasks</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{departmentTasks.length}</div>
+            <div className="text-2xl font-bold">{dashboardData.tasks.total}</div>
             <p className="text-xs text-muted-foreground mt-2">
-              {completedTasks} completed ({Math.round((completedTasks / (departmentTasks.length || 1)) * 100)}%)
+              {dashboardData.tasks.completed} completed ({Math.round((dashboardData.tasks.completed / (dashboardData.tasks.total || 1)) * 100)}%)
             </p>
           </CardContent>
         </Card>
@@ -105,9 +124,9 @@ export default function TeamLeaderDashboard() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Courses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{departmentCourses.length}</div>
+            <div className="text-2xl font-bold">{dashboardData.courses.total}</div>
             <p className="text-xs text-muted-foreground mt-2">
-              Available for {currentUser.department}
+              Available for {dashboardData.department}
             </p>
           </CardContent>
         </Card>
@@ -164,11 +183,7 @@ export default function TeamLeaderDashboard() {
               <BarChart
                 width={400}
                 height={300}
-                data={taskPerformance.map(data => ({
-                  name: data.name,
-                  completed: data.completedTasks,
-                  total: data.totalTasks
-                }))}
+                data={performanceData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
@@ -202,59 +217,43 @@ export default function TeamLeaderDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {teamMembers.map(member => {
-                    const taskStats = taskPerformance.find(t => t.name === member.name) || {
-                      completedTasks: 0,
-                      totalTasks: 0,
-                      percentage: 0
-                    };
-                    
-                    const courseStats = courseEnrollments.find(c => c.name === member.name) || {
-                      enrolledCourses: 0,
-                      totalCourses: 0,
-                      percentage: 0
-                    };
-                    
-                    const overallRating = (taskStats.percentage + courseStats.percentage) / 2;
-                    
-                    return (
-                      <tr key={member.id} className="border-b last:border-b-0">
+                  {dashboardData.performance.metrics.map(metric => (
+                    <tr key={metric.id} className="border-b last:border-b-0">
                         <td className="p-2">
-                          <div className="font-medium">{member.name}</div>
-                          <div className="text-sm text-muted-foreground">{member.email}</div>
+                        <div className="font-medium">{metric.name}</div>
+                        <div className="text-sm text-muted-foreground">{metric.email}</div>
                         </td>
                         <td className="text-center p-2">
                           <div className="font-medium">
-                            {taskStats.completedTasks}/{taskStats.totalTasks}
+                          {metric.taskStats.completed}/{metric.taskStats.total}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {taskStats.percentage}%
+                          {metric.taskStats.completionRate}%
                           </div>
                         </td>
                         <td className="text-center p-2">
                           <div className="font-medium">
-                            {courseStats.enrolledCourses}/{courseStats.totalCourses}
+                          {metric.courseStats.enrolled}/{metric.courseStats.total}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {courseStats.percentage}%
+                          {metric.courseStats.enrollmentRate}%
                           </div>
                         </td>
                         <td className="text-right p-2">
                           <div className="flex items-center justify-end">
                             <span 
                               className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-                                overallRating >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' :
-                                overallRating >= 50 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100' :
+                              metric.overallRating >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' :
+                              metric.overallRating >= 50 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100' :
                                 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
                               }`}
                             >
-                              {Math.round(overallRating)}%
+                            {metric.overallRating}%
                             </span>
                           </div>
                         </td>
                       </tr>
-                    );
-                  })}
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -272,26 +271,26 @@ export default function TeamLeaderDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            {bestPerformer ? (
+            {dashboardData.performance.bestPerformer ? (
               <div className="space-y-4">
                 <div className="flex items-center space-x-4">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="font-bold text-primary">{bestPerformer.name.charAt(0)}</span>
+                    <span className="font-bold text-primary">{dashboardData.performance.bestPerformer.name.charAt(0)}</span>
                   </div>
                   <div>
-                    <h3 className="font-medium">{bestPerformer.name}</h3>
+                    <h3 className="font-medium">{dashboardData.performance.bestPerformer.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {bestPerformer.completedTasks} of {bestPerformer.totalTasks} tasks completed
+                      {dashboardData.performance.bestPerformer.taskStats.completed} of {dashboardData.performance.bestPerformer.taskStats.total} tasks completed
                     </p>
                   </div>
                 </div>
                 <div className="w-full bg-secondary rounded-full h-2.5">
                   <div 
                     className="bg-primary h-2.5 rounded-full" 
-                    style={{ width: `${bestPerformer.percentage}%` }}
+                    style={{ width: `${dashboardData.performance.bestPerformer.taskStats.completionRate}%` }}
                   ></div>
                 </div>
-                <div className="text-sm font-medium text-right">{bestPerformer.percentage}% completion rate</div>
+                <div className="text-sm font-medium text-right">{dashboardData.performance.bestPerformer.taskStats.completionRate}% completion rate</div>
               </div>
             ) : (
               <p className="text-muted-foreground">No data available</p>
@@ -305,26 +304,26 @@ export default function TeamLeaderDashboard() {
             <CardDescription>Lowest task completion rate</CardDescription>
           </CardHeader>
           <CardContent>
-            {worstPerformer && worstPerformer.totalTasks > 0 ? (
+            {dashboardData.performance.worstPerformer && dashboardData.performance.worstPerformer.taskStats.total > 0 ? (
               <div className="space-y-4">
                 <div className="flex items-center space-x-4">
                   <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
-                    <span className="font-bold text-destructive">{worstPerformer.name.charAt(0)}</span>
+                    <span className="font-bold text-destructive">{dashboardData.performance.worstPerformer.name.charAt(0)}</span>
                   </div>
                   <div>
-                    <h3 className="font-medium">{worstPerformer.name}</h3>
+                    <h3 className="font-medium">{dashboardData.performance.worstPerformer.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {worstPerformer.completedTasks} of {worstPerformer.totalTasks} tasks completed
+                      {dashboardData.performance.worstPerformer.taskStats.completed} of {dashboardData.performance.worstPerformer.taskStats.total} tasks completed
                     </p>
                   </div>
                 </div>
                 <div className="w-full bg-secondary rounded-full h-2.5">
                   <div 
                     className="bg-destructive h-2.5 rounded-full" 
-                    style={{ width: `${worstPerformer.percentage}%` }}
+                    style={{ width: `${dashboardData.performance.worstPerformer.taskStats.completionRate}%` }}
                   ></div>
                 </div>
-                <div className="text-sm font-medium text-right">{worstPerformer.percentage}% completion rate</div>
+                <div className="text-sm font-medium text-right">{dashboardData.performance.worstPerformer.taskStats.completionRate}% completion rate</div>
                 <Button size="sm" className="w-full">
                   <Send className="mr-2 h-4 w-4" />
                   Send Course Recommendations
