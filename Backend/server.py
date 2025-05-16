@@ -329,7 +329,7 @@ def create_user(current_user_id):
 @app.route('/api/users/<int:user_id>', methods=['PUT'])
 @token_required
 def update_user(current_user_id, user_id):
-    """Update user information with improved field handling"""
+    """Update user information with improved field handling and security checks"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -354,9 +354,13 @@ def update_user(current_user_id, user_id):
             'experienceLevel': ('experience_level', int),
             'description': ('description', str),
             'profileImage': ('profile_image_url', str),
-            'isActive': ('is_active', bool),
-            'role': ('role', str)
+            'isActive': ('is_active', bool)
         }
+        
+        # If user is not admin, remove role from allowed fields
+        if current_user['role'] != 'Admin':
+            if 'role' in data:
+                return jsonify({'message': 'Unauthorized to change role'}), 403
         
         # Build update query dynamically
         update_fields = []
@@ -415,17 +419,29 @@ def update_user(current_user_id, user_id):
 @app.route('/api/users/<int:user_id>', methods=['DELETE'])
 @token_required
 def delete_user(current_user_id, user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Check if current user is admin
-    cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
-    current_user = cursor.fetchone()
-    
-    if current_user['role'] != 'Admin':
-        return jsonify({'message': 'Only admins can delete users'}), 403
-
     try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Check if user is trying to delete their own account
+        if current_user_id != user_id:
+            # Only admins can delete other users
+            cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+            current_user = cursor.fetchone()
+            if current_user['role'] != 'Admin':
+                return jsonify({'message': 'Unauthorized to delete other users'}), 403
+        
+        # Check if user is the last admin
+        cursor.execute('SELECT role FROM users WHERE id = %s', (user_id,))
+        user_to_delete = cursor.fetchone()
+        
+        if user_to_delete['role'] == 'Admin':
+            cursor.execute('SELECT COUNT(*) as admin_count FROM users WHERE role = "Admin"')
+            admin_count = cursor.fetchone()['admin_count']
+            if admin_count <= 1:
+                return jsonify({'message': 'Cannot delete the last admin user'}), 400
+        
+        # Delete the user
         cursor.execute('DELETE FROM users WHERE id = %s', (user_id,))
         conn.commit()
         
@@ -433,8 +449,10 @@ def delete_user(current_user_id, user_id):
             return jsonify({'message': 'User not found'}), 404
             
         return jsonify({'message': 'User deleted successfully'})
+        
     except Exception as e:
-        return jsonify({'message': str(e)}), 500
+        logger.error(f"User deletion error: {str(e)}")
+        return jsonify({'message': 'Error deleting user'}), 500
     finally:
         cursor.close()
         conn.close()
@@ -453,6 +471,18 @@ def update_password(current_user_id, user_id):
         
         if not current_password or not new_password:
             return jsonify({'message': 'Missing current or new password'}), 400
+            
+        # Validate password complexity
+        if len(new_password) < 8:
+            return jsonify({'message': 'Password must be at least 8 characters long'}), 400
+        if not any(c.isupper() for c in new_password):
+            return jsonify({'message': 'Password must contain at least one uppercase letter'}), 400
+        if not any(c.islower() for c in new_password):
+            return jsonify({'message': 'Password must contain at least one lowercase letter'}), 400
+        if not any(c.isdigit() for c in new_password):
+            return jsonify({'message': 'Password must contain at least one number'}), 400
+        if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in new_password):
+            return jsonify({'message': 'Password must contain at least one special character'}), 400
             
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -860,6 +890,239 @@ def delete_notification(current_user_id, notification_id):
     finally:
         cursor.close()
         conn.close()
+
+# Team Leader specific endpoints
+@app.route('/api/team-leader/update-profile', methods=['PUT'])
+@token_required
+def update_team_leader_simple(current_user_id):
+    """Simple endpoint to update team leader's basic information"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # First verify this is a team leader
+        cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        
+        if not user or user['role'] != 'TeamLeader':
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        data = request.get_json()
+        
+        # Only allow updating these specific fields
+        update_query = """
+            UPDATE users 
+            SET name = %s,
+                email = %s,
+                phone_number = %s,
+                description = %s
+            WHERE id = %s AND role = 'TeamLeader'
+        """
+        
+        cursor.execute(update_query, (
+            data.get('name'),
+            data.get('email'),
+            data.get('phoneNumber'),
+            data.get('bio'),
+            current_user_id
+        ))
+        conn.commit()
+
+        # Get updated user data
+        cursor.execute("""
+            SELECT id, name, email, role, department, 
+                   phone_number as phoneNumber,
+                   description as bio
+            FROM users 
+            WHERE id = %s
+        """, (current_user_id,))
+        
+        updated_user = cursor.fetchone()
+        
+        if updated_user:
+            return jsonify({
+                'message': 'Profile updated successfully',
+                'user': updated_user
+            })
+        else:
+            return jsonify({'error': 'Failed to update profile'}), 400
+
+    except Exception as e:
+        print(f"Error updating profile: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/team-leader/password', methods=['PUT'])
+@token_required
+def update_team_leader_password(current_user_id):
+    """Update team leader's own password"""
+    try:
+        if not request.is_json:
+            return jsonify({
+                'success': False,
+                'message': 'Content-Type must be application/json'
+            }), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verify user is a team leader
+        cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        
+        if not user or user['role'] != 'TeamLeader':
+            return jsonify({
+                'success': False,
+                'message': 'Unauthorized - Only team leaders can access this endpoint'
+            }), 403
+            
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'No data provided'
+            }), 400
+
+        current_password = data.get('currentPassword')
+        new_password = data.get('newPassword')
+        
+        if not current_password or not new_password:
+            return jsonify({
+                'success': False,
+                'message': 'Missing current or new password'
+            }), 400
+            
+        # Validate password complexity
+        if len(new_password) < 8:
+            return jsonify({
+                'success': False,
+                'message': 'Password must be at least 8 characters long'
+            }), 400
+        if not any(c.isupper() for c in new_password):
+            return jsonify({
+                'success': False,
+                'message': 'Password must contain at least one uppercase letter'
+            }), 400
+        if not any(c.islower() for c in new_password):
+            return jsonify({
+                'success': False,
+                'message': 'Password must contain at least one lowercase letter'
+            }), 400
+        if not any(c.isdigit() for c in new_password):
+            return jsonify({
+                'success': False,
+                'message': 'Password must contain at least one number'
+            }), 400
+        if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in new_password):
+            return jsonify({
+                'success': False,
+                'message': 'Password must contain at least one special character'
+            }), 400
+            
+        # Get user's current password hash
+        cursor.execute('SELECT password_hash FROM users WHERE id = %s AND role = "TeamLeader"', (current_user_id,))
+        user = cursor.fetchone()
+        
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': 'User not found'
+            }), 404
+            
+        # Check if current password matches
+        if not check_password_hash(user['password_hash'], current_password):
+            return jsonify({
+                'success': False,
+                'message': 'Current password is incorrect'
+            }), 401
+            
+        # Hash and update new password
+        new_password_hash = generate_password_hash(new_password)
+        cursor.execute('UPDATE users SET password_hash = %s WHERE id = %s AND role = "TeamLeader"', 
+                      (new_password_hash, current_user_id))
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Password updated successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Team leader password update error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Error updating password',
+            'error': str(e)
+        }), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+
+@app.route('/api/team-leader/account', methods=['DELETE'])
+@token_required
+def delete_team_leader_account(current_user_id):
+    """Delete team leader's own account"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verify user is a team leader
+        cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        
+        if not user or user['role'] != 'TeamLeader':
+            return jsonify({
+                'success': False,
+                'message': 'Unauthorized - Only team leaders can access this endpoint'
+            }), 403
+            
+        # Check if there are other team leaders in the same department
+        cursor.execute('''
+            SELECT COUNT(*) as team_leader_count 
+            FROM users 
+            WHERE role = "TeamLeader" 
+            AND department = %s 
+            AND id != %s
+        ''', (user['department'], current_user_id))
+        result = cursor.fetchone()
+        
+        if result['team_leader_count'] == 0:
+            return jsonify({
+                'success': False,
+                'message': 'Cannot delete account - You are the only team leader in your department. Please contact an administrator.'
+            }), 400
+        
+        # Delete the user
+        cursor.execute('DELETE FROM users WHERE id = %s AND role = "TeamLeader"', (current_user_id,))
+        conn.commit()
+        
+        if cursor.rowcount == 0:
+            return jsonify({
+                'success': False,
+                'message': 'Account deletion failed'
+            }), 400
+            
+        return jsonify({
+            'success': True,
+            'message': 'Account deleted successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Team leader account deletion error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Error deleting account',
+            'error': str(e)
+        }), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
 
 if __name__ == '__main__':
     # Log the server startup

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -13,6 +12,9 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { useAppContext } from "@/context/AppContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+
+// Add API URL constant
+const API_URL = 'http://localhost:5000/api';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -35,7 +37,7 @@ type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 const SettingsPage = () => {
   const { toast } = useToast();
-  const { currentUser } = useAppContext();
+  const { currentUser, logout, updateCurrentUser } = useAppContext();
   const [activeTab, setActiveTab] = useState("profile");
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -60,46 +62,158 @@ const SettingsPage = () => {
     },
   });
 
-  const onProfileSubmit = (data: ProfileFormValues) => {
-    setIsUpdating(true);
+  const onProfileSubmit = async (data: ProfileFormValues) => {
+    if (!currentUser) return;
     
-    // This would be an API call in a real application
-    setTimeout(() => {
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+    setIsUpdating(true);
+    const token = localStorage.getItem('token');
+    
+    try {
+      const response = await fetch(`${API_URL}/team-leader/update-profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          bio: data.bio
+        })
       });
-      
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      // Update local user state
+      updateCurrentUser({
+        ...currentUser,
+        name: data.name,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        description: data.bio
+      });
+
+      toast({
+        title: "Success",
+        description: "Profile updated successfully"
+      });
+
+    } catch (error) {
+      console.error('Update failed:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update profile",
+        variant: "destructive"
+      });
+    } finally {
       setIsUpdating(false);
-    }, 1000);
+    }
   };
 
-  const onPasswordSubmit = (data: PasswordFormValues) => {
+  const onPasswordSubmit = async (data: PasswordFormValues) => {
     setIsChangingPassword(true);
-    
-    // This would be an API call in a real application
-    setTimeout(() => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
+      const response = await fetch(`${API_URL}/team-leader/password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword
+        })
+      });
+
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        throw new Error('Invalid response from server');
+      }
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to change password');
+      }
+
+      if (!result.success) {
+        throw new Error(result.message || 'Password change failed');
+      }
+
       toast({
         title: "Password changed",
-        description: "Your password has been changed successfully.",
+        description: result.message || "Your password has been changed successfully.",
       });
       
-      setIsChangingPassword(false);
       passwordForm.reset();
-    }, 1000);
+    } catch (error) {
+      console.error('Password change error:', error);
+      toast({
+        title: "Password change failed",
+        description: error instanceof Error ? error.message : "Failed to change password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
-  const handleDeleteAccount = () => {
-    // This would be an API call in a real application
-    setTimeout(() => {
+  const handleDeleteAccount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      // const response = await fetch(`${API_URL}/team-leader/update-profile`, {
+      const response = await fetch(`${API_URL}/team-leader/account`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        throw new Error('Invalid response from server');
+      }
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to delete account');
+      }
+
+      if (!result.success) {
+        throw new Error(result.message || 'Account deletion failed');
+      }
+
       toast({
         title: "Account deleted",
-        description: "Your account has been deleted. You will be logged out now.",
+        description: result.message || "Your account has been deleted. You will be logged out now.",
       });
       
       setIsConfirmDialogOpen(false);
-      // In a real app, this would redirect to logout
-    }, 1000);
+      // Logout the user
+      logout();
+    } catch (error) {
+      console.error('Account deletion error:', error);
+      toast({
+        title: "Deletion failed",
+        description: error instanceof Error ? error.message : "Failed to delete account",
+        variant: "destructive",
+      });
+      setIsConfirmDialogOpen(false);
+    }
   };
 
   if (!currentUser) return null;
