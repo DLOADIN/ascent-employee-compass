@@ -106,19 +106,58 @@ const TeamLeadersPage = () => {
   const handleEditTeamLeader = async (userId: string, updatedData: Partial<User>) => {
     try {
       const token = localStorage.getItem('token');
-      const { data } = await axios.put<User>(
+      
+      // Format the data to match backend expectations
+      const formattedData = {
+        name: updatedData.name,
+        email: updatedData.email,
+        role: updatedData.role || 'TeamLeader',
+        department: updatedData.department || null,
+        phone_number: updatedData.phoneNumber || null,
+        skill_level: updatedData.skillLevel || null,
+        experience: updatedData.experience || null,
+        description: updatedData.description || null,
+        is_active: true
+      };
+
+      const { data } = await axios.put<any>(
         `http://localhost:5000/api/users/${userId}`,
-        { ...updatedData, role: 'TeamLeader' },
+        formattedData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setTeamLeaders(prev => prev.map(tl => tl.id === userId ? data : tl));
+      // Transform the response data
+      const transformedUser: User = {
+        id: data.user.id.toString(),
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role,
+        department: data.user.department,
+        phoneNumber: data.user.phone_number || '',
+        skillLevel: data.user.skill_level,
+        experience: data.user.experience || 0,
+        description: data.user.description || '',
+        isActive: Boolean(data.user.is_active),
+        createdAt: data.user.created_at,
+        updatedAt: data.user.updated_at
+      };
+
+      // If the user was demoted to Employee, remove them from the team leaders list
+      if (updatedData.role === 'Employee') {
+        setTeamLeaders(prev => prev.filter(tl => tl.id !== userId));
+      } else {
+        // Otherwise update the existing entry
+        setTeamLeaders(prev => prev.map(tl => tl.id === userId ? transformedUser : tl));
+      }
+
       setIsEditDialogOpen(false);
-      toast({
-        title: "Success",
-        description: "Team leader updated successfully",
-      });
+      setSelectedUser(null);
+
+      // Refresh the data to ensure we have the latest state
+      await fetchTeamLeaders();
+
     } catch (error: any) {
+      console.error('Error updating team leader:', error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to update team leader",
@@ -258,7 +297,7 @@ const TeamLeadersPage = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button
+                          {/* <Button
                             variant="outline"
                             size="icon"
                             className="text-destructive hover:text-destructive"
@@ -268,7 +307,7 @@ const TeamLeadersPage = () => {
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
-                          </Button>
+                          </Button> */}
                         </div>
                       </TableCell>
                     </TableRow>

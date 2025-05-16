@@ -28,19 +28,18 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
-  department: z.enum(["IT", "Finance", "Sales", "Customer-Service"]),
+  role: z.enum(["TeamLeader", "Employee"]),
+  department: z.enum(["IT", "Finance", "Sales", "Customer-Service"] as const),
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
   skillLevel: z.enum(["Beginner", "Intermediate", "Advanced"]),
-  experience: z.string().min(1, "Experience is required"),
-  skills: z.string().transform(str => 
-    str.split(',')
-      .map(s => s.trim())
-      .filter(s => s.length > 0)
-  ),
+  experience: z.coerce.number().min(0, "Experience is required"),
+  skills: z.string(),
   description: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+type TeamLeaderDepartment = Exclude<Department, "Admin">;
 
 export function EditTeamLeaderDialog({
   open,
@@ -61,10 +60,11 @@ export function EditTeamLeaderDialog({
     defaultValues: {
       name: user.name,
       email: user.email,
-      department: user.department as Department,
+      role: user.role as "TeamLeader" | "Employee",
+      department: (user.department || "IT") as TeamLeaderDepartment,
       phoneNumber: user.phoneNumber || "",
       skillLevel: user.skillLevel as SkillLevel || "Intermediate",
-      experience: user.experience?.toString() || "",
+      experience: user.experience || 0,
       skills: user.skills?.map(skill => skill.name)?.join(", ") || "",
       description: user.description || "",
     },
@@ -76,31 +76,38 @@ export function EditTeamLeaderDialog({
       const formattedData: Partial<User> = {
         name: data.name,
         email: data.email,
+        role: data.role,
         department: data.department,
         phoneNumber: data.phoneNumber,
         skillLevel: data.skillLevel,
-        role: "TeamLeader",
-        isActive: true,
-        experienceLevel: parseInt(data.experience),
+        experience: data.experience,
         description: data.description,
-        skills: data.skills.map(skill => ({
-          id: crypto.randomUUID(),
-          name: skill,
-          level: data.skillLevel
-        }))
+        isActive: true,
+        skills: data.skills.split(",")
+          .map(skill => skill.trim())
+          .filter(skill => skill.length > 0)
+          .map(skill => ({
+            id: crypto.randomUUID(),
+            name: skill,
+            level: data.skillLevel
+          }))
       };
 
       await handleSubmit(formattedData);
+      
+      const roleChangeMsg = data.role === "Employee" ? "demoted to Employee" : "updated successfully";
       toast({
-        title: "Team Leader Updated",
-        description: `${data.name}'s information has been updated successfully.`,
+        title: "Success",
+        description: `${data.name} has been ${roleChangeMsg}.`,
+        variant: "default"
       });
+      
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating team leader:', error);
       toast({
         title: "Error",
-        description: "Failed to update team leader. Please try again.",
+        description: error.message || "Failed to update team leader. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -114,7 +121,7 @@ export function EditTeamLeaderDialog({
         <DialogHeader>
           <DialogTitle>Edit Team Leader</DialogTitle>
           <DialogDescription>
-            Update team leader information. Changes will be saved immediately.
+            Update team leader information or change their role. Changes will be saved immediately.
           </DialogDescription>
         </DialogHeader>
         
@@ -149,6 +156,41 @@ export function EditTeamLeaderDialog({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex space-x-4"
+                    >
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="TeamLeader" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Team Leader
+                        </FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="Employee" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Employee
+                        </FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
