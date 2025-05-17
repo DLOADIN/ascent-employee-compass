@@ -146,11 +146,11 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
       });
       
       // Use onEdit callback instead of reloading
-      if (onEdit) {
-        onEdit(updatedTask);
-      }
+        if (onEdit) {
+          onEdit(updatedTask);
+        }
     } catch (error) {
-      toast({
+        toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update task",
         variant: "destructive"
@@ -430,7 +430,7 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
             {filteredTasks.completed.map(task => (
               <TaskCard key={task.id} task={task} />
             ))}
-          </div>
+              </div>
               </div>
             </div>
           </div>
