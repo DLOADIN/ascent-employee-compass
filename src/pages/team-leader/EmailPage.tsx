@@ -240,6 +240,7 @@ export default function EmailPage() {
               </Tabs>
             </CardHeader>
             <CardContent>
+              <Tabs>
               <TabsContent value="inbox" className="mt-0">
                 {receivedEmails.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -329,6 +330,7 @@ export default function EmailPage() {
                   </div>
                 )}
               </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>
