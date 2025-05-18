@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,6 +33,7 @@ const DEFAULT_LOGINS = [
 export default function LoginPage() {
   const { login } = useAppContext();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const form = useForm<LoginFormValues>({
@@ -47,8 +49,16 @@ export default function LoginPage() {
     try {
       const response = await login(data.email, data.password);
       if (response.success) {
-        // Navigate to the redirect URL provided by the backend
-        navigate(response.redirect || "/");
+        // First, check for a specific redirect from the location state
+        const from = location.state?.from;
+        
+        // Next, check for a lastVisitedPath in localStorage
+        const lastVisitedPath = localStorage.getItem('lastVisitedPath');
+        
+        // Finally, fall back to the redirect from the login response or the role-based default
+        const redirectPath = from || lastVisitedPath || response.redirect || "/";
+        
+        navigate(redirectPath, { replace: true });
       }
     } catch (error) {
       console.error("Login error:", error);

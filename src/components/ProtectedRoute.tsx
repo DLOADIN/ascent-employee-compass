@@ -1,4 +1,5 @@
-import { Navigate } from 'react-router-dom';
+
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
 import { UserRole } from '@/types';
 
@@ -9,14 +10,20 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles = [] }) => {
   const { currentUser } = useAppContext();
+  const location = useLocation();
+  
+  // Store current path in localStorage when user accesses a protected route
+  if (currentUser) {
+    localStorage.setItem('lastVisitedPath', location.pathname);
+  }
 
   if (!currentUser) {
-    // Not authenticated
-    return <Navigate to="/login" replace />;
+    // Not authenticated - redirect to login while saving current path
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(currentUser.role)) {
-    // Not authorized
+    // Not authorized - redirect to appropriate dashboard
     switch (currentUser.role) {
       case 'Admin':
         return <Navigate to="/admin" replace />;
@@ -32,4 +39,4 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   return <>{children}</>;
 };
 
-export default ProtectedRoute; 
+export default ProtectedRoute;
