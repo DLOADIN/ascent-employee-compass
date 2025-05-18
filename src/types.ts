@@ -1,74 +1,93 @@
-export type UserRole = 'Admin' | 'TeamLeader' | 'Employee';
-export type Department = 'IT' | 'Finance' | 'Sales' | 'Customer-Service';
-export type TaskStatus = 'Todo' | 'In Progress' | 'Completed';
-export type NotificationType = 'task' | 'course' | 'job' | 'general';
 
+// User Roles
+export type UserRole = "Admin" | "TeamLeader" | "Employee";
+
+// Departments
+export type Department = "IT" | "Finance" | "Sales" | "Customer-Service";
+
+// Skill level
+export type SkillLevel = "Beginner" | "Intermediate" | "Advanced";
+
+// Skills
+export interface Skill {
+  id: string;
+  name: string;
+  level: SkillLevel;
+}
+
+// User type
 export interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
-  department?: Department;
-  phoneNumber?: string;
-  experience?: number;
-  experienceLevel?: number;
-  description?: string;
-  profileImage?: string;
+  department: Department;
+  phoneNumber: string;
+  experience: number;
+  experienceLevel: number;
+  description: string;
+  profileImage: string;
   isActive: boolean;
+  skillLevel?: SkillLevel;
+  skills?: Skill[];
 }
 
+// Task status
+export type TaskStatus = "Todo" | "In Progress" | "Completed";
+
+// Task type
 export interface Task {
   id: string;
   title: string;
   description: string;
-  assignedTo: string | string[];  // Can be a single user ID or an array of user IDs
+  assignedTo: string;
   assignedBy: string;
   status: TaskStatus;
-  progress: number;
   deadline: Date;
-  documentation?: string;
   createdAt: Date;
+  progress: number;
 }
 
+// Course type
 export interface Course {
   id: string;
   title: string;
   description: string;
-  department?: Department;
-  videoUrl: string;
-  thumbnailUrl?: string;
-  enrolledUsers: string[];
-  createdAt: Date;
+  instructor: string;
+  department: Department;
+  duration: string;
+  thumbnailUrl: string;
+  progress?: number;
+  status?: "Not Started" | "In Progress" | "Completed";
+  enrolledAt?: Date;
 }
 
+// Job Opportunity type
 export interface JobOpportunity {
   id: string;
   title: string;
-  department?: Department;
+  department: Department;
   description: string;
-  postedBy: string;
+  requiredSkills: string[];
   postedAt: Date;
   deadline: Date;
-  requiredSkills?: string[];
+  postedBy: string;
 }
 
+// Notification Type
+export type NotificationType = "Message" | "Task" | "Announcement" | "System";
+
+// Notification Status
+export type NotificationStatus = "Unread" | "Read";
+
+// Notification
 export interface Notification {
   id: string;
+  type: NotificationType;
   title: string;
   message: string;
-  userId: string;  // User ID who should receive the notification
-  type: NotificationType;
-  link?: string;
-  isRead: boolean;
-  createdAt: Date;
+  status: NotificationStatus;
+  timestamp: Date;
+  sender?: string;
+  relatedId?: string;
 }
-
-export interface LoginSession {
-  id: string;
-  userId: string;
-  userAgent: string;
-  ipAddress: string;
-  loginTime: Date;
-  logoutTime?: Date;
-  isActive: boolean;
-} 
