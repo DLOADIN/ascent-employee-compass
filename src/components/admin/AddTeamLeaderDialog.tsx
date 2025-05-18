@@ -76,6 +76,8 @@ export function AddTeamLeaderDialog({
         role: "TeamLeader",
         isActive: true,
         experienceLevel: parseInt(data.experience),
+        experience: parseInt(data.experience), // Add experience field
+        profileImage: '', // Add profileImage field
         description: data.description || undefined,
         skills: [{
           id: crypto.randomUUID(),

@@ -21,12 +21,12 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  department: Department;
-  phoneNumber: string;
-  experience: number;
-  experienceLevel: number;
-  description: string;
-  profileImage: string;
+  department?: Department;
+  phoneNumber?: string;
+  experience?: number;
+  experienceLevel?: number;
+  description?: string;
+  profileImage?: string;
   isActive: boolean;
   skillLevel?: SkillLevel;
   skills?: Skill[];
@@ -45,7 +45,8 @@ export interface Task {
   status: TaskStatus;
   deadline: Date;
   createdAt: Date;
-  progress: number;
+  progress?: number;
+  documentation?: string;
 }
 
 // Course type
@@ -53,10 +54,14 @@ export interface Course {
   id: string;
   title: string;
   description: string;
-  instructor: string;
+  instructor?: string;
   department: Department;
-  duration: string;
-  thumbnailUrl: string;
+  duration?: string;
+  thumbnailUrl?: string;
+  videoUrl?: string;
+  thumbnail?: string;
+  createdAt?: Date;
+  enrolledUsers?: string[];
   progress?: number;
   status?: "Not Started" | "In Progress" | "Completed";
   enrolledAt?: Date;
@@ -75,7 +80,7 @@ export interface JobOpportunity {
 }
 
 // Notification Type
-export type NotificationType = "Message" | "Task" | "Announcement" | "System";
+export type NotificationType = "Message" | "Task" | "Announcement" | "System" | "task" | "course" | "job" | "general";
 
 // Notification Status
 export type NotificationStatus = "Unread" | "Read";
@@ -86,8 +91,23 @@ export interface Notification {
   type: NotificationType;
   title: string;
   message: string;
-  status: NotificationStatus;
-  timestamp: Date;
+  status?: NotificationStatus;
+  timestamp?: Date;
+  createdAt?: Date;
+  isRead?: boolean;
+  userId?: string;
   sender?: string;
   relatedId?: string;
+  link?: string;
+}
+
+// Login Session
+export interface LoginSession {
+  id: string;
+  userId: string;
+  userAgent: string;
+  ipAddress: string;
+  loginTime: Date;
+  logoutTime?: Date;
+  isActive: boolean;
 }

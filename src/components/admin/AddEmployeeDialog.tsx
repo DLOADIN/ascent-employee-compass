@@ -94,7 +94,8 @@ export function AddEmployeeDialog({ open, onOpenChange, onSubmit }: AddEmployeeD
         description: values.description,
         isActive: values.isActive,
         password: values.password,
-        sendCredentials: values.sendCredentials
+        sendCredentials: values.sendCredentials,
+        profileImage: '' // Provide default empty string for profileImage
       };
       await onSubmit(userData);
       form.reset();

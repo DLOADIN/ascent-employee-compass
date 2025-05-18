@@ -32,7 +32,7 @@ const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   role: z.enum(["Admin", "Employee", "TeamLeader"]),
-  department: z.enum(["Admin", "IT", "Finance", "Sales", "Customer-Service"]).optional(),
+  department: z.enum(["IT", "Finance", "Sales", "Customer-Service"]).optional(),
   phoneNumber: z.string().min(10, { message: "Phone number must be at least 10 digits." }),
   skillLevel: z.enum(["Beginner", "Intermediate", "Advanced"]).optional(),
   experience: z.coerce.number().min(0).optional(),
