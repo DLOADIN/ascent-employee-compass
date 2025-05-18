@@ -66,9 +66,7 @@ const EmployeesPage = () => {
         experienceLevel: user.experience_level,
         description: user.description,
         profileImage: user.profile_image_url,
-        isActive: Boolean(user.is_active),
-        createdAt: user.created_at,
-        updatedAt: user.updated_at
+        isActive: Boolean(user.is_active)
       }));
 
       setEmployees(transformedUsers.filter(user => user.role === "Employee"));
@@ -131,9 +129,7 @@ const EmployeesPage = () => {
         experienceLevel: data.experience_level,
         description: data.description,
         profileImage: data.profile_image_url,
-        isActive: Boolean(data.is_active),
-        createdAt: data.created_at,
-        updatedAt: data.updated_at
+        isActive: Boolean(data.is_active)
       };
 
       setEmployees([...employees, transformedUser]);
@@ -186,9 +182,7 @@ const EmployeesPage = () => {
           experienceLevel: response.data.user.experience_level || 0,
           description: response.data.user.description || '',
           profileImage: response.data.user.profile_image_url || '',
-          isActive: Boolean(response.data.user.is_active),
-          createdAt: response.data.user.created_at,
-          updatedAt: response.data.user.updated_at
+          isActive: Boolean(response.data.user.is_active)
       };
 
         // Update the employees list immediately

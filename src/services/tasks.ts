@@ -17,7 +17,7 @@ export interface BackendTask {
 // Transform backend task data to frontend format
 export const transformTaskData = (backendTask: BackendTask): Task => {
   // Handle assigned_to field - can be a string (comma-separated) or null
-  let assignedTo: string[] = [];
+  let assignedTo: string | string[] = "";
   if (backendTask.assigned_to) {
     // Check if it's already an array
     if (Array.isArray(backendTask.assigned_to)) {
@@ -27,7 +27,7 @@ export const transformTaskData = (backendTask: BackendTask): Task => {
       assignedTo = backendTask.assigned_to.split(',').map(id => id.trim());
     } else {
       // Handle single ID case
-      assignedTo = [String(backendTask.assigned_to)];
+      assignedTo = String(backendTask.assigned_to);
     }
   }
 
@@ -134,4 +134,4 @@ export const getDepartmentUsers = async (department: string): Promise<any[]> => 
   }
   
   return Array.isArray(users) ? users : [];
-}; 
+};

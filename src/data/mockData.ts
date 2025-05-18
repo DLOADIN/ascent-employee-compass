@@ -1,4 +1,3 @@
-
 import { User, Task, Course, JobOpportunity, Notification, LoginSession, Skill } from "@/types";
 
 export const mockUsers: User[] = [
@@ -9,7 +8,10 @@ export const mockUsers: User[] = [
     role: "Admin",
     phoneNumber: "123-456-7890",
     isActive: true,
-    profileImage: "https://ui-avatars.com/api/?name=John+Smith&background=0D8ABC&color=fff"
+    profileImage: "https://ui-avatars.com/api/?name=John+Smith&background=0D8ABC&color=fff",
+    experience: 0,
+    experienceLevel: 0,
+    description: ""
   },
   {
     id: "2",
@@ -172,6 +174,7 @@ export const mockJobOpportunities: JobOpportunity[] = [
     requiredSkills: ["React", "Node.js"],
     postedAt: new Date("2025-06-01"),
     deadline: new Date("2025-06-30"),
+    postedBy: "1" // Added postedBy property with Admin user ID
   },
   {
     id: "2",
@@ -181,6 +184,7 @@ export const mockJobOpportunities: JobOpportunity[] = [
     requiredSkills: ["Financial Analysis", "Excel"],
     postedAt: new Date("2025-06-02"),
     deadline: new Date("2025-06-25"),
+    postedBy: "1" // Added postedBy property with Admin user ID
   }
 ];
 

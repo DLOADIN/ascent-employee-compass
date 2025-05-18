@@ -127,27 +127,27 @@ const TeamLeadersPage = () => {
       );
 
       // Transform the response data
-      const transformedUser: User = {
-        id: data.user.id.toString(),
-        name: data.user.name,
-        email: data.user.email,
-        role: data.user.role,
-        department: data.user.department,
-        phoneNumber: data.user.phone_number || '',
-        skillLevel: data.user.skill_level,
-        experience: data.user.experience || 0,
-        description: data.user.description || '',
-        isActive: Boolean(data.user.is_active),
-        createdAt: data.user.created_at,
-        updatedAt: data.user.updated_at
-      };
+      const transformedUsers: User[] = data.map(user => ({
+        id: user.id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        phoneNumber: user.phone_number,
+        skillLevel: user.skill_level,
+        experience: user.experience,
+        experienceLevel: user.experience_level,
+        description: user.description,
+        profileImage: user.profile_image_url,
+        isActive: Boolean(user.is_active)
+      }));
 
       // If the user was demoted to Employee, remove them from the team leaders list
       if (updatedData.role === 'Employee') {
         setTeamLeaders(prev => prev.filter(tl => tl.id !== userId));
       } else {
         // Otherwise update the existing entry
-        setTeamLeaders(prev => prev.map(tl => tl.id === userId ? transformedUser : tl));
+        setTeamLeaders(prev => prev.map(tl => tl.id === userId ? transformedUsers[0] : tl));
       }
 
       setIsEditDialogOpen(false);

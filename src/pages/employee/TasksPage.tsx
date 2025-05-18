@@ -11,7 +11,14 @@ export default function TasksPage() {
 
   if (!currentUser) return null;
 
-  const userTasks = tasks.filter(task => task.assignedTo === currentUser.id);
+  const userTasks = tasks.filter(task => {
+    // Handle both string and string[] cases for assignedTo
+    if (Array.isArray(task.assignedTo)) {
+      return task.assignedTo.includes(currentUser.id);
+    }
+    return task.assignedTo === currentUser.id;
+  });
+  
   const completedTasks = userTasks.filter(task => task.status === "Completed").length;
   const inProgressTasks = userTasks.filter(task => task.status === "In Progress").length;
   const todoTasks = userTasks.filter(task => task.status === "Todo").length;
@@ -95,6 +102,7 @@ export default function TasksPage() {
         tasks={userTasks}
         canEdit={true}
         onEdit={handleEditTask}
+        teamMembers={users} // Add the teamMembers prop
       />
     </div>
   );

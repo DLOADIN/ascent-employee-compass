@@ -30,6 +30,8 @@ export interface User {
   isActive: boolean;
   skillLevel?: SkillLevel;
   skills?: Skill[];
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 // Task status
@@ -40,7 +42,7 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  assignedTo: string;
+  assignedTo: string | string[];
   assignedBy: string;
   status: TaskStatus;
   deadline: Date;

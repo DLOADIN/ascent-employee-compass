@@ -288,7 +288,13 @@ const NotificationsPage = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {notification.createdAt}
+                          {notification.createdAt ? 
+                            new Date(notification.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            }) : 
+                            'Unknown date'}
                         </TableCell>
                         <TableCell>
                           <Button
