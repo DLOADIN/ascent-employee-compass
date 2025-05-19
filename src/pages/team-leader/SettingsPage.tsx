@@ -27,7 +27,6 @@ const profileFormSchema = z.object({
 });
 
 const passwordFormSchema = z.object({
-  currentPassword: z.string().min(8, "Password must be at least 8 characters"),
   newPassword: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
 }).refine((data) => data.newPassword === data.confirmPassword, {
@@ -62,7 +61,6 @@ const SettingsPage = () => {
   const passwordForm = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema),
     defaultValues: {
-      currentPassword: "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -146,7 +144,6 @@ const SettingsPage = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          currentPassword: data.currentPassword,
           newPassword: data.newPassword
         })
       });
@@ -312,86 +309,57 @@ const SettingsPage = () => {
             <CardContent>
               <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Label htmlFor="newPassword">New Password</Label>
                   <div className="relative">
                     <Input
-                      id="currentPassword"
-                      type={showCurrentPassword ? "text" : "password"}
-                      {...passwordForm.register("currentPassword")}
+                      id="newPassword"
+                      type={showNewPassword ? "text" : "password"}
+                      {...passwordForm.register("newPassword")}
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      onClick={() => setShowNewPassword(!showNewPassword)}
                     >
-                      {showCurrentPassword ? (
+                      {showNewPassword ? (
                         <EyeOff className="h-4 w-4" />
                       ) : (
                         <Eye className="h-4 w-4" />
                       )}
                     </Button>
                   </div>
-                  {passwordForm.formState.errors.currentPassword && (
-                    <p className="text-sm text-destructive">{passwordForm.formState.errors.currentPassword.message}</p>
+                  {passwordForm.formState.errors.newPassword && (
+                    <p className="text-sm text-destructive">{passwordForm.formState.errors.newPassword.message}</p>
                   )}
                 </div>
                 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="newPassword">New Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="newPassword"
-                        type={showNewPassword ? "text" : "password"}
-                        {...passwordForm.register("newPassword")}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                      >
-                        {showNewPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                    {passwordForm.formState.errors.newPassword && (
-                      <p className="text-sm text-destructive">{passwordForm.formState.errors.newPassword.message}</p>
-                    )}
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      {...passwordForm.register("confirmPassword")}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        {...passwordForm.register("confirmPassword")}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                    {passwordForm.formState.errors.confirmPassword && (
-                      <p className="text-sm text-destructive">{passwordForm.formState.errors.confirmPassword.message}</p>
-                    )}
-                  </div>
+                  {passwordForm.formState.errors.confirmPassword && (
+                    <p className="text-sm text-destructive">{passwordForm.formState.errors.confirmPassword.message}</p>
+                  )}
                 </div>
                 
                 <Button type="submit" disabled={isChangingPassword}>
