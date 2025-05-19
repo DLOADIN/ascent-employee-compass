@@ -384,7 +384,7 @@ const EmployeesPage = () => {
                   <TableHead>Email</TableHead>
                   <TableHead className="hidden md:table-cell">Role</TableHead>
                   <TableHead className="hidden md:table-cell">Department</TableHead>
-                  <TableHead className="hidden lg:table-cell">Phone</TableHead>
+                  <TableHead className="hidden lg:table-cell">Skill Level</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -402,7 +402,7 @@ const EmployeesPage = () => {
                       <TableCell>{user.email}</TableCell>
                       <TableCell className="hidden md:table-cell">{user.role}</TableCell>
                       <TableCell className="hidden md:table-cell">{user.department || "N/A"}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{user.phoneNumber}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{user.skillLevel}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           {user.role === "Employee" && (
