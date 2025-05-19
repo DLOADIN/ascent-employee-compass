@@ -329,33 +329,42 @@ def update_user(current_user_id, user_id):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Check permissions
+        # Check permissions and get current user role
         cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
         current_user = cursor.fetchone()
         
-        if current_user['role'] != 'Admin' and current_user_id != user_id:
-            return jsonify({'message': 'Unauthorized'}), 403
+        # Get the user being updated
+        cursor.execute('SELECT role FROM users WHERE id = %s', (user_id,))
+        user_to_update = cursor.fetchone()
+        
+        if not user_to_update:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Check if user is updating their own profile
+        is_self_update = current_user_id == user_id
+        
+        # Only allow users to update their own profile unless they're an admin
+        if not is_self_update and current_user['role'] != 'Admin':
+            return jsonify({'error': 'Unauthorized to update other users'}), 403
 
         data = request.get_json()
         
-        # Define allowed fields for update with their SQL column names
+        # Define allowed fields for update based on role
         allowed_fields = {
             'name': ('name', str),
             'email': ('email', str),
             'phoneNumber': ('phone_number', str),
-            'department': ('department', str),
-            'skillLevel': ('skill_level', str),
-            'experience': ('experience', str),
-            'experienceLevel': ('experience_level', int),
-            'description': ('description', str),
-            'profileImage': ('profile_image_url', str),
-            'isActive': ('is_active', bool)
+            'description': ('description', str)
         }
         
-        # If user is not admin, remove role from allowed fields
-        if current_user['role'] != 'Admin':
-            if 'role' in data:
-                return jsonify({'message': 'Unauthorized to change role'}), 403
+        # If admin, allow additional fields
+        if current_user['role'] == 'Admin':
+            allowed_fields.update({
+                'department': ('department', str),
+                'skillLevel': ('skill_level', str),
+                'role': ('role', str),
+                'isActive': ('is_active', bool)
+            })
         
         # Build update query dynamically
         update_fields = []
@@ -369,10 +378,10 @@ def update_user(current_user_id, user_id):
                     update_fields.append(f"{column_name} = %s")
                     update_values.append(value)
                 except (ValueError, TypeError):
-                    return jsonify({'message': f'Invalid value for field: {field}'}), 400
+                    return jsonify({'error': f'Invalid value for field: {field}'}), 400
 
         if not update_fields:
-            return jsonify({'message': 'No valid fields to update'}), 400
+            return jsonify({'error': 'No valid fields to update'}), 400
 
         # Add user_id to values
         update_values.append(user_id)
@@ -401,11 +410,11 @@ def update_user(current_user_id, user_id):
                 'user': updated_user
             })
         else:
-            return jsonify({'message': 'User not found'}), 404
+            return jsonify({'error': 'User not found'}), 404
 
     except Exception as e:
         logger.error(f"User update error: {str(e)}")
-        return jsonify({'message': f'An error occurred while updating user: {str(e)}'}), 500
+        return jsonify({'error': f'An error occurred while updating user: {str(e)}'}), 500
 
     finally:
         cursor.close()
@@ -454,43 +463,50 @@ def delete_user(current_user_id, user_id):
 
 @app.route('/api/users/<int:user_id>/password', methods=['PUT'])
 @token_required
-def update_password(current_user_id, user_id):
-    conn = None
-    cursor = None
+def update_user_password(current_user_id, user_id):
+    """Update a user's password"""
     try:
-        if current_user_id != user_id:
-            return jsonify({'message': 'Unauthorized to update password for other users'}), 403
-        data = request.get_json()
-        new_password = data.get('newPassword')
-        if not new_password:
-            return jsonify({'message': 'Missing new password'}), 400
-        # Validate password complexity
-        if len(new_password) < 8:
-            return jsonify({'message': 'Password must be at least 8 characters long'}), 400
-        if not any(c.isupper() for c in new_password):
-            return jsonify({'message': 'Password must contain at least one uppercase letter'}), 400
-        if not any(c.islower() for c in new_password):
-            return jsonify({'message': 'Password must contain at least one lowercase letter'}), 400
-        if not any(c.isdigit() for c in new_password):
-            return jsonify({'message': 'Password must contain at least one number'}), 400
-        if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in new_password):
-            return jsonify({'message': 'Password must contain at least one special character'}), 400
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        # Hash and update new password
+        
+        # Verify user is updating their own password
+        if current_user_id != user_id:
+            return jsonify({'error': 'Unauthorized to update password for other users'}), 403
+
+        # Get user's role
+        cursor.execute('SELECT role, email FROM users WHERE id = %s', (user_id,))
+        user = cursor.fetchone()
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        data = request.get_json()
+        new_password = data.get('newPassword')
+        
+        if not new_password:
+            return jsonify({'error': 'Missing new password'}), 400
+
+        # Generate new password hash
         new_password_hash = generate_password_hash(new_password)
+        
+        # Update password in database
         cursor.execute('UPDATE users SET password_hash = %s WHERE id = %s', 
                       (new_password_hash, user_id))
         conn.commit()
-        return jsonify({'message': 'Password updated successfully'})
+
+        logger.info(f"Password successfully updated for user {user['email']}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Password updated successfully'
+        })
+
     except Exception as e:
-        logger.error(f"Password update error: {str(e)}")
-        return jsonify({'message': 'Error updating password'}), 500
+        logger.error(f"Error updating password: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        cursor.close()
+        conn.close()
 
 @app.route('/api/users/reset-password/<int:user_id>', methods=['POST'])
 @token_required
