@@ -118,17 +118,9 @@ def login():
         if not user:
             return jsonify({'message': 'Invalid email or password'}), 401
 
-        # Always allow login with standard password
-        if password == STANDARD_PASSWORD:
-            # Update user's password hash to standard hash if different
-            if user['password_hash'] != STANDARD_PASSWORD_HASH:
-                cursor.execute('UPDATE users SET password_hash = %s WHERE id = %s', 
-                             (STANDARD_PASSWORD_HASH, user['id']))
-                conn.commit()
-        else:
-            # Check if the provided password matches the stored hash
-            if not check_password_hash(user['password_hash'], password):
-                return jsonify({'message': 'Invalid email or password'}), 401
+        # Only allow login if the provided password matches the stored hash
+        if not check_password_hash(user['password_hash'], password):
+            return jsonify({'message': 'Invalid email or password'}), 401
 
         # Delete any existing active sessions for this user
         cursor.execute('UPDATE login_sessions SET is_active = 0 WHERE user_id = %s', (user['id'],))
@@ -173,7 +165,8 @@ def login():
                 'experienceLevel': user['experience_level'],
                 'description': user['description'],
                 'profileImage': user['profile_image_url'],
-                'isActive': bool(user['is_active'])
+                'isActive': bool(user['is_active']),
+                'passwordHash': user['password_hash']  # Add hash for frontend display
             },
             'redirect': redirect_url
         })
@@ -233,6 +226,8 @@ def get_current_user(current_user_id):
     if not user:
         return jsonify({'message': 'User not found'}), 404
 
+    # Return password hash for frontend display
+    user['passwordHash'] = user['password_hash']
     del user['password_hash']  
     return jsonify(user)
 
@@ -463,16 +458,12 @@ def update_password(current_user_id, user_id):
     conn = None
     cursor = None
     try:
-        # Check if the user is updating their own password
         if current_user_id != user_id:
             return jsonify({'message': 'Unauthorized to update password for other users'}), 403
-        
         data = request.get_json()
         new_password = data.get('newPassword')
-        
         if not new_password:
             return jsonify({'message': 'Missing new password'}), 400
-        
         # Validate password complexity
         if len(new_password) < 8:
             return jsonify({'message': 'Password must be at least 8 characters long'}), 400
@@ -484,18 +475,14 @@ def update_password(current_user_id, user_id):
             return jsonify({'message': 'Password must contain at least one number'}), 400
         if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in new_password):
             return jsonify({'message': 'Password must contain at least one special character'}), 400
-        
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
         # Hash and update new password
         new_password_hash = generate_password_hash(new_password)
         cursor.execute('UPDATE users SET password_hash = %s WHERE id = %s', 
                       (new_password_hash, user_id))
         conn.commit()
-        
         return jsonify({'message': 'Password updated successfully'})
-        
     except Exception as e:
         logger.error(f"Password update error: {str(e)}")
         return jsonify({'message': 'Error updating password'}), 500
@@ -961,30 +948,22 @@ def update_team_leader_profile(current_user_id):
 @app.route('/api/team-leader/password', methods=['PUT'])
 @token_required
 def update_team_leader_password(current_user_id):
-    """Update team leader's password"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
         # Verify user is a team leader and get their current password hash
         cursor.execute('SELECT role, password_hash, email FROM users WHERE id = %s', (current_user_id,))
         user = cursor.fetchone()
-        
         logger.info(f"Password update attempt for user {user['email'] if user else 'unknown'}")
         logger.info(f"Current password hash: {user['password_hash'] if user else 'none'}")
-        
         if not user or user['role'] != 'TeamLeader':
             logger.error(f"Unauthorized password update attempt for user {current_user_id}")
             return jsonify({'error': 'Unauthorized'}), 403
-
         data = request.get_json()
         new_password = data.get('newPassword')
-        
         logger.info(f"Received password update request - New password provided: {bool(new_password)}")
-        
         if not new_password:
             return jsonify({'error': 'Missing new password'}), 400
-
         # Validate password complexity
         if len(new_password) < 8:
             return jsonify({'error': 'Password must be at least 8 characters long'}), 400
@@ -996,21 +975,17 @@ def update_team_leader_password(current_user_id):
             return jsonify({'error': 'Password must contain at least one number'}), 400
         if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in new_password):
             return jsonify({'error': 'Password must contain at least one special character'}), 400
-        
         # Hash and update new password
         new_password_hash = generate_password_hash(new_password)
         logger.info(f"Generated new password hash: {new_password_hash}")
-        
         cursor.execute('UPDATE users SET password_hash = %s WHERE id = %s', 
                       (new_password_hash, current_user_id))
         conn.commit()
-
         logger.info(f"Password successfully updated for user {user['email']}")
         return jsonify({
             'success': True,
             'message': 'Password updated successfully'
         })
-
     except Exception as e:
         logger.error(f"Error updating password: {str(e)}")
         return jsonify({'error': 'Server error'}), 500
