@@ -37,9 +37,10 @@ interface TaskBoardProps {
   canEdit?: boolean;
   onEdit?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
+  onUpdateProgress?: (task: Task) => void;
 }
 
-export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelete }: TaskBoardProps) {
+export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelete, onUpdateProgress }: TaskBoardProps) {
   const { currentUser } = useAppContext();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -228,22 +229,16 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {task.status !== "Completed" && (
-                  <DropdownMenuItem onClick={() => handleUpdateTaskStatus(task.id, "Completed")}>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Mark as Completed
-                  </DropdownMenuItem>
-                )}
-                {task.status === "Todo" && (
-                  <DropdownMenuItem onClick={() => handleUpdateTaskStatus(task.id, "In Progress")}>
+                {onUpdateProgress && (
+                  <DropdownMenuItem onClick={() => onUpdateProgress(task)}>
                     <Clock className="mr-2 h-4 w-4" />
-                    Start Progress
+                    Update Progress
                   </DropdownMenuItem>
                 )}
-                {canEdit && (
+                {canEdit && onDelete && (
                   <DropdownMenuItem 
                     className="text-destructive"
-                    onClick={() => handleDeleteTask(task.id)}
+                    onClick={() => onDelete(task.id)}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete Task
@@ -257,6 +252,12 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
           <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
             {task.description}
           </p>
+          {task.documentation && (
+            <div className="mb-4">
+              <h4 className="text-sm font-medium mb-1">Documentation</h4>
+              <p className="text-sm text-muted-foreground">{task.documentation}</p>
+            </div>
+          )}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Deadline:</span>

@@ -1559,6 +1559,107 @@ def get_all_users_for_email(current_user_id):
         cursor.close()
         conn.close()
 
+@app.route('/api/tasks/<int:task_id>/progress', methods=['PUT'])
+@token_required
+def update_task_progress(current_user_id, task_id):
+    """Update task progress and documentation with automatic status updates"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get current user's role and the task
+        cursor.execute('''
+            SELECT t.*, u.role, u.department 
+            FROM tasks t
+            JOIN users u ON u.id = %s
+            WHERE t.id = %s
+        ''', (current_user_id, task_id))
+        result = cursor.fetchone()
+        
+        if not result:
+            return jsonify({'error': 'Task not found'}), 404
+            
+        task = result
+        user_role = result['role']
+        
+        # Verify user has permission to update the task
+        if user_role == 'Employee' and task['assigned_to'] != current_user_id:
+            return jsonify({'error': 'Unauthorized to update this task'}), 403
+            
+        data = request.get_json()
+        progress = data.get('progress')
+        documentation = data.get('documentation')
+        
+        if progress is not None:
+            # Validate progress value
+            try:
+                progress = int(progress)
+                if not 0 <= progress <= 100:
+                    return jsonify({'error': 'Progress must be between 0 and 100'}), 400
+            except (ValueError, TypeError):
+                return jsonify({'error': 'Invalid progress value'}), 400
+                
+            # Automatically update status based on progress
+            if progress >= 90:
+                status = 'Completed'
+            elif progress >= 50:
+                status = 'In Progress'
+            else:
+                status = 'Todo'
+        else:
+            status = task['status']
+            progress = task['progress']
+            
+        # Build update query
+        update_fields = []
+        update_values = []
+        
+        if progress is not None:
+            update_fields.append("progress = %s")
+            update_values.append(progress)
+            
+        if documentation is not None:
+            update_fields.append("documentation = %s")
+            update_values.append(documentation)
+            
+        if status != task['status']:
+            update_fields.append("status = %s")
+            update_values.append(status)
+            
+        if not update_fields:
+            return jsonify({'error': 'No valid fields to update'}), 400
+            
+        # Add task_id to values
+        update_values.append(task_id)
+        
+        # Update the task
+        query = f"UPDATE tasks SET {', '.join(update_fields)} WHERE id = %s"
+        cursor.execute(query, tuple(update_values))
+        conn.commit()
+        
+        # Get updated task
+        cursor.execute('''
+            SELECT t.*, 
+                   u1.name as assigned_to_name, 
+                   u1.email as assigned_to_email,
+                   u1.department as assigned_to_department,
+                   u2.name as assigned_by_name
+            FROM tasks t
+            JOIN users u1 ON t.assigned_to = u1.id
+            JOIN users u2 ON t.assigned_by = u2.id
+            WHERE t.id = %s
+        ''', (task_id,))
+        
+        updated_task = cursor.fetchone()
+        return jsonify(updated_task)
+        
+    except Exception as e:
+        logger.error(f"Error updating task progress: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 if __name__ == '__main__':
     # Log the server startup
     app.run(debug=True, port=5000)
