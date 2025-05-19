@@ -951,41 +951,35 @@ def update_team_leader_password(current_user_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        # Verify user is a team leader and get their current password hash
-        cursor.execute('SELECT role, password_hash, email FROM users WHERE id = %s', (current_user_id,))
+        
+        # Verify user is a team leader
+        cursor.execute('SELECT role, email FROM users WHERE id = %s', (current_user_id,))
         user = cursor.fetchone()
-        logger.info(f"Password update attempt for user {user['email'] if user else 'unknown'}")
-        logger.info(f"Current password hash: {user['password_hash'] if user else 'none'}")
+        
         if not user or user['role'] != 'TeamLeader':
-            logger.error(f"Unauthorized password update attempt for user {current_user_id}")
             return jsonify({'error': 'Unauthorized'}), 403
+
         data = request.get_json()
         new_password = data.get('newPassword')
-        logger.info(f"Received password update request - New password provided: {bool(new_password)}")
+        
         if not new_password:
             return jsonify({'error': 'Missing new password'}), 400
-        # Validate password complexity
-        if len(new_password) < 8:
-            return jsonify({'error': 'Password must be at least 8 characters long'}), 400
-        if not any(c.isupper() for c in new_password):
-            return jsonify({'error': 'Password must contain at least one uppercase letter'}), 400
-        if not any(c.islower() for c in new_password):
-            return jsonify({'error': 'Password must contain at least one lowercase letter'}), 400
-        if not any(c.isdigit() for c in new_password):
-            return jsonify({'error': 'Password must contain at least one number'}), 400
-        if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in new_password):
-            return jsonify({'error': 'Password must contain at least one special character'}), 400
-        # Hash and update new password
+
+        # Generate new password hash using werkzeug's generate_password_hash
         new_password_hash = generate_password_hash(new_password)
-        logger.info(f"Generated new password hash: {new_password_hash}")
+        
+        # Update password in database
         cursor.execute('UPDATE users SET password_hash = %s WHERE id = %s', 
                       (new_password_hash, current_user_id))
         conn.commit()
-        logger.info(f"Password successfully updated for user {user['email']}")
+
+        logger.info(f"Password successfully updated for team leader {user['email']}")
+        
         return jsonify({
             'success': True,
             'message': 'Password updated successfully'
         })
+
     except Exception as e:
         logger.error(f"Error updating password: {str(e)}")
         return jsonify({'error': 'Server error'}), 500

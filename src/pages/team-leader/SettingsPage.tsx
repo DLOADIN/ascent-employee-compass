@@ -27,8 +27,13 @@ const profileFormSchema = z.object({
 });
 
 const passwordFormSchema = z.object({
-  newPassword: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
+  newPassword: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+  confirmPassword: z.string()
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
@@ -124,7 +129,6 @@ const SettingsPage = () => {
     const token = localStorage.getItem('token');
     
     if (!token) {
-      console.error('No authentication token found');
       toast({
         title: "Error",
         description: "Authentication token missing",
@@ -135,8 +139,6 @@ const SettingsPage = () => {
     }
     
     try {
-      console.log('Attempting password update with token:', token.substring(0, 20) + '...');
-      
       const response = await fetch(`${API_URL}/team-leader/password`, {
         method: 'PUT',
         headers: {
@@ -148,9 +150,7 @@ const SettingsPage = () => {
         })
       });
 
-      console.log('Password update response status:', response.status);
       const result = await response.json();
-      console.log('Password update response:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to change password');
@@ -161,7 +161,9 @@ const SettingsPage = () => {
         description: "Password changed successfully"
       });
       
+      // Just clear the form without logging out
       passwordForm.reset();
+      
     } catch (error) {
       console.error('Password change failed:', error);
       toast({

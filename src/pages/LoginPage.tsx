@@ -145,8 +145,8 @@ export default function LoginPage() {
         <div className="text-center text-sm text-muted-foreground mt-4">
           <p>Demo Accounts:</p>
           <ul className="mt-2 space-y-1">
-            <li>Admin: admin@gmail.com / password123</li>
-            <li>Team Leader: teamlead.finance@hrms.com / teamlead.finance@hrms.com</li>
+            <li>Admin: admin@gmail.com / TestPassword123!</li>
+            <li>Team Leader: teamlead.finance@hrms.com / TestPassword123!</li>
             <li>Employee: bob@example.com / employee</li>
           </ul>
         </div>
