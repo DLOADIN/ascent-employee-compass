@@ -6,6 +6,7 @@ import { login as authLogin, transformUserData } from '@/services/auth';
 
 interface AppContextType {
   currentUser: User | null;
+  token: string | null;
   users: User[];
   tasks: Task[];
   courses: Course[];
@@ -33,6 +34,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [users, setUsers] = useState<User[]>(mockUsers);
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
   const [courses, setCourses] = useState<Course[]>(mockCourses);
@@ -80,7 +82,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       // Store auth data
       localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(transformedUser));
+      setToken(response.token);
       
       setCurrentUser(transformedUser);
       
@@ -124,7 +126,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       // Clear auth data
       localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      setToken(null);
       
       toast({
         title: "Logged out",
@@ -292,6 +294,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const value = {
     currentUser,
+    token,
     users,
     tasks,
     courses,

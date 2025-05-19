@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,66 +6,76 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppContext } from "@/context/AppContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Send, Trash2 } from "lucide-react";
+import { Mail, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import emailjs from 'emailjs-com';
+import { User } from "@/types";
 
-interface EmailData {
-  id: string;
-  from: string;
-  to: string;
-  subject: string;
-  content: string;
-  date: Date;
-  read: boolean;
-}
+// !!! REPLACE WITH YOUR ACTUAL EMAILJS CREDENTIALS !!!
+const EMAILJS_SERVICE_ID = 'service_igz6o0i'; // Replace with your actual Service ID
+const EMAILJS_TEMPLATE_ID = 'template_0yx40dq'; // Replace with your actual Template ID (Assuming this is your Contact Us template)
+const EMAILJS_USER_ID = '78ZWX-IRTvsxuxjtd'; // Replace with your actual User ID
+
+// Removed EmailData interface as it's no longer used for mock data
+// interface EmailData {
+//   id: string;
+//   from: string;
+//   to: string;
+//   subject: string;
+//   content: string;
+//   date: Date;
+//   read: boolean;
+// }
 
 export default function EmailPage() {
-  const { currentUser, users } = useAppContext();
+  const { currentUser, token, users } = useAppContext(); // Get currentUser and token from context
   const { toast } = useToast();
-  
-  // Mock data for emails
-  const [sentEmails, setSentEmails] = useState<EmailData[]>([
-    {
-      id: "1",
-      from: currentUser?.id || "",
-      to: users.find(u => u.role === "TeamLeader")?.id || "",
-      subject: "Weekly Report",
-      content: "Here's the report you asked for. Let me know if you need anything else!",
-      date: new Date(2025, 4, 10),
-      read: true,
-    },
-  ]);
-  
-  const [receivedEmails, setReceivedEmails] = useState<EmailData[]>([
-    {
-      id: "2",
-      from: users.find(u => u.role === "TeamLeader")?.id || "",
-      to: currentUser?.id || "",
-      subject: "Task Updates Required",
-      content: "Please provide updates on your current tasks by the end of the week.",
-      date: new Date(2025, 4, 12),
-      read: false,
-    },
-    {
-      id: "3",
-      from: users.find(u => u.role === "Admin")?.id || "",
-      to: currentUser?.id || "",
-      subject: "New Company Policy",
-      content: "We've updated our remote work policy. Please review the attached document.",
-      date: new Date(2025, 4, 13),
-      read: false,
-    },
-  ]);
+  const [isSending, setIsSending] = useState(false);
+  const [selectableUsers, setSelectableUsers] = useState<User[]>([]); // State to store fetched users
   
   const [newEmail, setNewEmail] = useState({
-    to: "",
+    to: "",  // This will store the user's ID
+    recipientEmail: "", // Add this to store the selected user's email
     subject: "",
     content: "",
   });
   
-  const handleSendEmail = () => {
+  // Fetch users when component mounts
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!token) return; // Ensure token is available
+      try {
+        const response = await fetch('http://localhost:5000/api/all-users-for-email', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          // Filter out the current user from the selectable list
+          setSelectableUsers(data.filter(user => user.id !== currentUser?.id));
+        } else {
+          toast({
+            title: "Error",
+            description: data.error || "Failed to fetch users.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch users.",
+          variant: "destructive",
+        });
+      }
+    };
+    fetchUsers();
+  }, [token, toast, currentUser]); // Refetch if token, toast, or currentUser changes
+
+  const handleSendEmail = async () => {
     // Validation
-    if (!newEmail.to || !newEmail.subject || !newEmail.content) {
+    if (!newEmail.to || !newEmail.recipientEmail || !newEmail.subject || !newEmail.content) {
       toast({
         title: "Missing information",
         description: "Please fill in all fields",
@@ -74,60 +83,78 @@ export default function EmailPage() {
       });
       return;
     }
-    
-    // Create new email
-    const email: EmailData = {
-      id: Date.now().toString(),
-      from: currentUser?.id || "",
-      to: newEmail.to,
-      subject: newEmail.subject,
-      content: newEmail.content,
-      date: new Date(),
-      read: false,
-    };
-    
-    // Add to sent emails
-    setSentEmails([email, ...sentEmails]);
-    
-    // Reset form
-    setNewEmail({
-      to: "",
-      subject: "",
-      content: "",
-    });
-    
-    // Show success message
-    toast({
-      title: "Email sent",
-      description: "Your email has been sent successfully.",
-    });
-  };
-  
-  const handleDeleteEmail = (id: string, type: 'sent' | 'received') => {
-    if (type === 'sent') {
-      setSentEmails(sentEmails.filter(email => email.id !== id));
-    } else {
-      setReceivedEmails(receivedEmails.filter(email => email.id !== id));
+
+    setIsSending(true);
+
+    // Find the recipient user from fetched users
+    const recipientUser = selectableUsers.find(user => user.id === newEmail.to);
+
+    if (!recipientUser) {
+        toast({
+            title: "Error",
+            description: "Invalid recipient selected.",
+            variant: "destructive"
+        });
+        setIsSending(false);
+        return;
     }
     
-    toast({
-      title: "Email deleted",
-      description: "The email has been deleted.",
-    });
+    const templateParams = {
+        title: newEmail.subject,
+        name: currentUser?.name || 'Employee',
+        email: newEmail.recipientEmail, // Use the stored recipient email
+        message: newEmail.content,
+        time: new Date().toLocaleString(),
+    };
+
+    try {
+        await emailjs.send(
+            EMAILJS_SERVICE_ID,
+            EMAILJS_TEMPLATE_ID,
+            templateParams,
+            EMAILJS_USER_ID
+        );
+        
+        toast({
+            title: "Email Sent",
+            description: `Your email to ${recipientUser.name} has been sent successfully.`,
+        });
+        
+        // Reset form
+        setNewEmail({
+          to: "",
+          recipientEmail: "", // Reset recipient email
+          subject: "",
+          content: "",
+        });
+        
+    } catch (error) {
+        console.error('Email sending failed:', error);
+        toast({
+            title: "Error",
+            description: error instanceof Error ? error.message : "Failed to send email.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsSending(false);
+    }
   };
-  
-  const handleMarkAsRead = (id: string) => {
-    setReceivedEmails(receivedEmails.map(email => 
-      email.id === id ? { ...email, read: true } : email
-    ));
+
+  // Handle recipient selection
+  const handleRecipientChange = (userId: string) => {
+    const selectedUser = selectableUsers.find(user => user.id === userId);
+    setNewEmail(prev => ({
+      ...prev,
+      to: userId,
+      recipientEmail: selectedUser?.email || "", // Store the selected user's email
+    }));
   };
-  
+
+  // Function to get user name by ID (not strictly needed now, but can keep if used elsewhere)
   const getUserNameById = (userId: string) => {
-    const user = users.find(u => u.id === userId);
+    const user = selectableUsers.find(u => u.id === userId);
     return user ? user.name : "Unknown User";
   };
-  
-  const unreadCount = receivedEmails.filter(email => !email.read).length;
   
   return (
     <div className="space-y-6">
@@ -135,36 +162,43 @@ export default function EmailPage() {
         <div>
           <h1 className="text-3xl font-bold">Email</h1>
           <p className="text-muted-foreground mt-1">
-            Send and receive emails within the organization
+            Send emails within the organization
           </p>
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sidebar/Navigation */}
+      <div className="grid grid-cols-1 lg:col-span-2 gap-6">
+        {/* Compose Email Card */}
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle>Compose Email</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Recipient Selection (Dropdown) */}
               <div className="space-y-2">
                 <Label htmlFor="recipient">Recipient</Label>
                 <select 
                   id="recipient"
                   value={newEmail.to}
-                  onChange={(e) => setNewEmail({...newEmail, to: e.target.value})}
+                  onChange={(e) => handleRecipientChange(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <option value="">Select recipient</option>
-                  {users.filter(user => user.id !== currentUser?.id).map(user => (
+                  <option value="">Select an employee or team leader</option>
+                  {selectableUsers.map(user => (
                     <option key={user.id} value={user.id}>
-                      {user.name} ({user.role})
+                      {user.name} ({user.role} - {user.email})
                     </option>
                   ))}
                 </select>
+                {newEmail.recipientEmail && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Selected email: {newEmail.recipientEmail}
+                  </p>
+                )}
               </div>
               
+              {/* Subject Input */}
               <div className="space-y-2">
                 <Label htmlFor="subject">Subject</Label>
                 <Input 
@@ -175,6 +209,7 @@ export default function EmailPage() {
                 />
               </div>
               
+              {/* Content Textarea */}
               <div className="space-y-2">
                 <Label htmlFor="content">Content</Label>
                 <Textarea 
@@ -186,124 +221,32 @@ export default function EmailPage() {
                 />
               </div>
               
+              {/* Send Button */}
               <Button 
                 onClick={handleSendEmail} 
                 className="w-full"
+                disabled={isSending}
               >
-                <Send className="mr-2 h-4 w-4" /> Send Email
+                {isSending ? 'Sending...' : 'Send Email'}
               </Button>
             </CardContent>
           </Card>
         </div>
         
-        {/* Email List/Content */}
+        {/* Email Sending Status Card */}
         <div className="lg:col-span-2">
           <Card>
-            <CardHeader className="pb-3">
-              <Tabs defaultValue="inbox">
-                <TabsList>
-                  <TabsTrigger value="inbox" className="relative">
-                    Inbox
-                    {unreadCount > 0 && (
-                      <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="sent">Sent</TabsTrigger>
-                </TabsList>
-              </Tabs>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Mail className="mr-2 h-5 w-5" />
+                Email Sending Status
+              </CardTitle>
+              <CardDescription>
+                Check the console for EmailJS logs.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <TabsContent value="inbox" className="mt-0">
-                {receivedEmails.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <Mail className="h-12 w-12 text-muted-foreground/50" />
-                    <h3 className="mt-4 text-lg font-medium">No emails</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      You don't have any emails in your inbox.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border">
-                    {receivedEmails.map((email) => (
-                      <div 
-                        key={email.id} 
-                        className={`py-3 ${!email.read ? 'bg-accent/10' : ''}`}
-                        onClick={() => handleMarkAsRead(email.id)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">
-                              {getUserNameById(email.from)}
-                            </p>
-                            <p className={`text-sm ${!email.read ? 'font-semibold' : 'text-muted-foreground'}`}>
-                              {email.subject}
-                            </p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {email.date.toLocaleDateString()}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteEmail(email.id, 'received');
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        <p className="text-sm mt-1 line-clamp-2">{email.content}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-              <TabsContent value="sent" className="mt-0">
-                {sentEmails.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <Send className="h-12 w-12 text-muted-foreground/50" />
-                    <h3 className="mt-4 text-lg font-medium">No sent emails</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      You haven't sent any emails yet.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border">
-                    {sentEmails.map((email) => (
-                      <div key={email.id} className="py-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">
-                              To: {getUserNameById(email.to)}
-                            </p>
-                            <p className="text-sm text-muted-foreground">{email.subject}</p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {email.date.toLocaleDateString()}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleDeleteEmail(email.id, 'sent')}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        <p className="text-sm mt-1 line-clamp-2">{email.content}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
+               <p className="text-sm text-muted-foreground">Sent email status will appear here after attempting to send.</p>
             </CardContent>
           </Card>
         </div>

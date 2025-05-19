@@ -49,7 +49,7 @@ export default function SettingsPage() {
       confirmPassword: "",
     },
   });
-
+  
   if (!formData || !currentUser) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -183,99 +183,99 @@ export default function SettingsPage() {
         </TabsList>
 
         <TabsContent value="profile">
-          <form onSubmit={handleSubmit}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>
-                  Update your personal details and preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phoneNumber">Phone Number</Label>
-                    <Input
-                      id="phoneNumber"
-                      name="phoneNumber"
+      <form onSubmit={handleSubmit}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Personal Information</CardTitle>
+            <CardDescription>
+              Update your personal details and preferences
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input
+                  id="phoneNumber"
+                  name="phoneNumber"
                       type="tel"
                       placeholder="+1234567890"
-                      value={formData.phoneNumber}
-                      onChange={handleChange}
-                      required
-                    />
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                  required
+                />
                     <p className="text-xs text-muted-foreground">
                       Enter your phone number with country code (e.g., +1234567890)
                     </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="department">Department</Label>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="department">Department</Label>
                     <Input
                       id="department"
-                      value={formData.department}
-                      disabled
+                  value={formData.department}
+                  disabled
                     />
-                    <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                       Department cannot be changed
-                    </p>
-                  </div>
-                </div>
+                </p>
+              </div>
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">About</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    value={formData.description || ""}
-                    onChange={handleChange}
-                    rows={4}
-                    placeholder="Tell us about yourself"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">About</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description || ""}
+                onChange={handleChange}
+                rows={4}
+                placeholder="Tell us about yourself"
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="skillLevel">Skill Level</Label>
+            <div className="space-y-2">
+              <Label htmlFor="skillLevel">Skill Level</Label>
                   <Input
                     id="skillLevel"
-                    value={formData.skillLevel}
+                value={formData.skillLevel}
                     disabled
                   />
                   <p className="text-xs text-muted-foreground">
                     Skill level can only be updated by your team leader
                   </p>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline" type="reset" onClick={() => setFormData(currentUser)}>
-                  Cancel
-                </Button>
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button variant="outline" type="reset" onClick={() => setFormData(currentUser)}>
+              Cancel
+            </Button>
                 <Button type="submit" disabled={isUpdating}>
                   {isUpdating ? "Saving..." : "Save Changes"}
                 </Button>
-              </CardFooter>
-            </Card>
-          </form>
+          </CardFooter>
+        </Card>
+      </form>
         </TabsContent>
 
         <TabsContent value="password">
@@ -351,38 +351,38 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="danger">
-          <Card className="border-red-200 dark:border-red-800">
-            <CardHeader>
-              <CardTitle className="text-red-600 dark:text-red-400">Danger Zone</CardTitle>
-              <CardDescription>
-                Actions in this section can lead to permanent data loss
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive">Delete Account</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete your account and all associated data.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction 
-                      className="bg-red-600 hover:bg-red-700"
-                      onClick={logout}
-                    >
-                      Delete Account
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </CardContent>
-          </Card>
+      <Card className="border-red-200 dark:border-red-800">
+        <CardHeader>
+          <CardTitle className="text-red-600 dark:text-red-400">Danger Zone</CardTitle>
+          <CardDescription>
+            Actions in this section can lead to permanent data loss
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">Delete Account</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete your account and all associated data.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={logout}
+                >
+                  Delete Account
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
         </TabsContent>
       </Tabs>
     </div>

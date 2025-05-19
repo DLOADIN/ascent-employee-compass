@@ -37,7 +37,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
     { icon: Home, label: "Dashboard", to: "/team-leader" },
     { icon: FileText, label: "Tasks", to: "/team-leader/tasks" },
     { icon: BookOpen, label: "Courses", to: "/team-leader/courses" },
-    { icon: Mail, label: "Email", to: "/team-leader/email" },
+    // { icon: Mail, label: "Email", to: "/team-leader/email" },
     { icon: Settings, label: "Settings", to: "/team-leader/settings" }
   ];
 
@@ -45,7 +45,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
     { icon: Home, label: "Dashboard", to: "/employee" },
     { icon: FileText, label: "Tasks", to: "/employee/tasks" },
     { icon: BookOpen, label: "Courses", to: "/employee/courses" },
-    { icon: Mail, label: "Email", to: "/employee/email" },
+    // { icon: Mail, label: "Email", to: "/employee/email" },
     { icon: Settings, label: "Settings", to: "/employee/settings" }
   ];
 

@@ -1481,6 +1481,33 @@ def get_tasks_by_status(current_user_id):
         cursor.close()
         conn.close()
 
+# Function to get all users for email recipients
+@app.route('/api/all-users-for-email', methods=['GET'])
+@token_required
+def get_all_users_for_email(current_user_id):
+    """Get all users (employees and team leaders) for email recipients"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Fetch all users with role Employee or TeamLeader
+        cursor.execute('''
+            SELECT id, name, email, role 
+            FROM users 
+            WHERE role = 'Employee' OR role = 'TeamLeader' OR role = 'Admin'
+        ''') # Include Admin based on schema and potential use cases
+        
+        users_list = cursor.fetchall()
+        
+        return jsonify(users_list)
+
+    except Exception as e:
+        logger.error(f"Error fetching users for email: {str(e)}")
+        return jsonify({'error': 'Error fetching users'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 if __name__ == '__main__':
     # Log the server startup
     app.run(debug=True, port=5000)
