@@ -14,8 +14,19 @@ import { AlertCircle, Clock, CheckCircle } from "lucide-react";
 
 const API_URL = 'http://localhost:5000/api';
 
+interface TaskResponse {
+  tasks: Task[];
+  overall_progress: number;
+  task_counts: {
+    total: number;
+    completed: number;
+    in_progress: number;
+    todo: number;
+  };
+}
+
 export default function TasksPage() {
-  const { currentUser, users, tasks, updateTask } = useAppContext();
+  const { currentUser } = useAppContext();
   const { toast } = useToast();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -23,6 +34,13 @@ export default function TasksPage() {
   const [documentation, setDocumentation] = useState("");
   const [userTasks, setUserTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [overallProgress, setOverallProgress] = useState(0);
+  const [taskCounts, setTaskCounts] = useState({
+    total: 0,
+    completed: 0,
+    inProgress: 0,
+    todo: 0
+  });
 
   useEffect(() => {
     const fetchUserTasks = async () => {
@@ -40,8 +58,15 @@ export default function TasksPage() {
           throw new Error('Failed to fetch tasks');
         }
 
-        const tasks = await response.json();
-        setUserTasks(tasks);
+        const data: TaskResponse = await response.json();
+        setUserTasks(data.tasks);
+        setOverallProgress(data.overall_progress);
+        setTaskCounts({
+          total: data.task_counts.total,
+          completed: data.task_counts.completed,
+          inProgress: data.task_counts.in_progress,
+          todo: data.task_counts.todo
+        });
       } catch (error) {
         console.error('Error fetching tasks:', error);
         toast({
@@ -60,14 +85,6 @@ export default function TasksPage() {
   }, [currentUser, toast]);
 
   if (!currentUser) return null;
-
-  const completedTasks = userTasks.filter(task => task.status === "Completed").length;
-  const inProgressTasks = userTasks.filter(task => task.status === "In Progress").length;
-  const todoTasks = userTasks.filter(task => task.status === "Todo").length;
-
-  const taskProgress = userTasks.length > 0
-    ? Math.round((completedTasks / userTasks.length) * 100)
-    : 0;
 
   const handleUpdateProgress = async () => {
     if (!selectedTask) return;
@@ -98,6 +115,24 @@ export default function TasksPage() {
           task.id === updatedTask.id ? updatedTask : task
         )
       );
+      
+      // Refresh tasks to get updated overall progress
+      const refreshResponse = await fetch(`${API_URL}/tasks/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (refreshResponse.ok) {
+        const data: TaskResponse = await refreshResponse.json();
+        setOverallProgress(data.overall_progress);
+        setTaskCounts({
+          total: data.task_counts.total,
+          completed: data.task_counts.completed,
+          inProgress: data.task_counts.in_progress,
+          todo: data.task_counts.todo
+        });
+      }
       
       toast({
         title: "Success",
@@ -151,22 +186,22 @@ export default function TasksPage() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Overall Progress</span>
-                <span className="text-sm font-medium">{taskProgress}%</span>
+                <span className="text-sm font-medium">{overallProgress}%</span>
               </div>
-              <Progress value={taskProgress} className="h-2" />
+              <Progress value={overallProgress} className="h-2" />
             </div>
 
             <div className="grid grid-cols-3 gap-4 pt-4">
               <div className="flex flex-col items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <span className="text-lg font-bold">{todoTasks}</span>
+                <span className="text-lg font-bold">{taskCounts.todo}</span>
                 <span className="text-xs text-muted-foreground mt-1">To Do</span>
               </div>
               <div className="flex flex-col items-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                <span className="text-lg font-bold">{inProgressTasks}</span>
+                <span className="text-lg font-bold">{taskCounts.inProgress}</span>
                 <span className="text-xs text-muted-foreground mt-1">In Progress</span>
               </div>
               <div className="flex flex-col items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <span className="text-lg font-bold">{completedTasks}</span>
+                <span className="text-lg font-bold">{taskCounts.completed}</span>
                 <span className="text-xs text-muted-foreground mt-1">Completed</span>
               </div>
             </div>
@@ -177,8 +212,12 @@ export default function TasksPage() {
       <TaskBoard
         tasks={userTasks}
         canEdit={true}
-        onEdit={updateTask}
-        teamMembers={users}
+        onEdit={(task) => {
+          setUserTasks(prevTasks => 
+            prevTasks.map(t => t.id === task.id ? task : t)
+          );
+        }}
+        teamMembers={[]}
         onUpdateProgress={openProgressDialog}
       />
 

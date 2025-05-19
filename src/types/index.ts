@@ -35,7 +35,9 @@ export interface Task {
   assignedBy: number;
   assigned_to_name?: string;
   assigned_to_email?: string;
+  assigned_to_department?: string;
   assigned_by_name?: string;
+  assigned_by_email?: string;
   status: 'Todo' | 'In Progress' | 'Completed';
   progress?: number;
   deadline: string;

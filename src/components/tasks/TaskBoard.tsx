@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Task, User } from "@/types";
+import { Task, User } from "@/types/index";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -209,7 +209,6 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
   };
 
   const TaskCard = ({ task }: { task: Task }) => {
-    const assignedUser = teamMembers.find(user => user.id === task.assignedTo);
     const isOverdue = new Date(task.deadline) < new Date() && task.status !== "Completed";
 
     return (
@@ -219,7 +218,10 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
             <div className="space-y-1">
               <CardTitle className="text-base">{task.title}</CardTitle>
               <CardDescription className="text-xs">
-                Assigned to: {assignedUser?.name || 'Unknown'} ({assignedUser?.department || 'Unknown'})
+                Assigned to: {task.assigned_to_name} ({task.assigned_to_department})
+              </CardDescription>
+              <CardDescription className="text-xs">
+                Assigned by: {task.assigned_by_name}
               </CardDescription>
             </div>
             <DropdownMenu>

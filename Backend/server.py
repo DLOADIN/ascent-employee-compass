@@ -1439,7 +1439,7 @@ def delete_task(current_user_id, task_id):
 @app.route('/api/tasks/status', methods=['GET'])
 @token_required
 def get_tasks_by_status(current_user_id):
-    """Get tasks filtered by status with department-based access control"""
+    """Get tasks filtered by status with department-based access control and progress calculation"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -1463,7 +1463,8 @@ def get_tasks_by_status(current_user_id):
                        u1.name as assigned_to_name, 
                        u1.email as assigned_to_email,
                        u1.department as assigned_to_department,
-                       u2.name as assigned_by_name
+                       u2.name as assigned_by_name,
+                       u2.email as assigned_by_email
                 FROM tasks t
                 JOIN users u1 ON t.assigned_to = u1.id
                 JOIN users u2 ON t.assigned_by = u2.id
@@ -1477,7 +1478,8 @@ def get_tasks_by_status(current_user_id):
                            u1.name as assigned_to_name, 
                            u1.email as assigned_to_email,
                            u1.department as assigned_to_department,
-                           u2.name as assigned_by_name
+                           u2.name as assigned_by_name,
+                           u2.email as assigned_by_email
                     FROM tasks t
                     JOIN users u1 ON t.assigned_to = u1.id
                     JOIN users u2 ON t.assigned_by = u2.id
@@ -1491,7 +1493,8 @@ def get_tasks_by_status(current_user_id):
                            u1.name as assigned_to_name, 
                            u1.email as assigned_to_email,
                            u1.department as assigned_to_department,
-                           u2.name as assigned_by_name
+                           u2.name as assigned_by_name,
+                           u2.email as assigned_by_email
                     FROM tasks t
                     JOIN users u1 ON t.assigned_to = u1.id
                     JOIN users u2 ON t.assigned_by = u2.id
@@ -1505,7 +1508,8 @@ def get_tasks_by_status(current_user_id):
                        u1.name as assigned_to_name, 
                        u1.email as assigned_to_email,
                        u1.department as assigned_to_department,
-                       u2.name as assigned_by_name
+                       u2.name as assigned_by_name,
+                       u2.email as assigned_by_email
                 FROM tasks t
                 JOIN users u1 ON t.assigned_to = u1.id
                 JOIN users u2 ON t.assigned_by = u2.id
@@ -1522,8 +1526,27 @@ def get_tasks_by_status(current_user_id):
         
         cursor.execute(query, tuple(params))
         tasks = cursor.fetchall()
+
+        # Calculate overall progress
+        total_progress = 0
+        for task in tasks:
+            total_progress += task['progress'] if task['progress'] is not None else 0
         
-        return jsonify(tasks)
+        overall_progress = round(total_progress / len(tasks)) if tasks else 0
+
+        # Get task counts by status
+        task_counts = {
+            'total': len(tasks),
+            'completed': sum(1 for task in tasks if task['status'] == 'Completed'),
+            'in_progress': sum(1 for task in tasks if task['status'] == 'In Progress'),
+            'todo': sum(1 for task in tasks if task['status'] == 'Todo')
+        }
+        
+        return jsonify({
+            'tasks': tasks,
+            'overall_progress': overall_progress,
+            'task_counts': task_counts
+        })
 
     except Exception as e:
         logger.error(f"Error fetching tasks: {str(e)}")
