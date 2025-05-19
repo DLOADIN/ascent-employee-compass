@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { useAppContext } from "@/context/AppContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Eye, EyeOff } from "lucide-react";
 
 // Add API URL constant
 const API_URL = 'http://localhost:5000/api';
@@ -19,7 +20,9 @@ const API_URL = 'http://localhost:5000/api';
 const profileFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
-  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+  phoneNumber: z.string()
+    .min(10, "Phone number must be at least 10 characters")
+    .regex(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, "Invalid phone number format"),
   bio: z.string().optional(),
 });
 
@@ -42,6 +45,9 @@ const SettingsPage = () => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -265,8 +271,14 @@ const SettingsPage = () => {
                   <Label htmlFor="phoneNumber">Phone Number</Label>
                   <Input
                     id="phoneNumber"
+                    type="tel"
+                    pattern="[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}"
+                    placeholder="+1234567890"
                     {...profileForm.register("phoneNumber")}
                   />
+                  <p className="text-sm text-muted-foreground">
+                    Enter your phone number with country code (e.g., +1234567890)
+                  </p>
                   {profileForm.formState.errors.phoneNumber && (
                     <p className="text-sm text-destructive">{profileForm.formState.errors.phoneNumber.message}</p>
                   )}
@@ -302,11 +314,26 @@ const SettingsPage = () => {
               <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input
-                    id="currentPassword"
-                    type="password"
-                    {...passwordForm.register("currentPassword")}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="currentPassword"
+                      type={showCurrentPassword ? "text" : "password"}
+                      {...passwordForm.register("currentPassword")}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    >
+                      {showCurrentPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                   {passwordForm.formState.errors.currentPassword && (
                     <p className="text-sm text-destructive">{passwordForm.formState.errors.currentPassword.message}</p>
                   )}
@@ -315,11 +342,26 @@ const SettingsPage = () => {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="newPassword">New Password</Label>
-                    <Input
-                      id="newPassword"
-                      type="password"
-                      {...passwordForm.register("newPassword")}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showNewPassword ? "text" : "password"}
+                        {...passwordForm.register("newPassword")}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        {showNewPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                     {passwordForm.formState.errors.newPassword && (
                       <p className="text-sm text-destructive">{passwordForm.formState.errors.newPassword.message}</p>
                     )}
@@ -327,11 +369,26 @@ const SettingsPage = () => {
                   
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      {...passwordForm.register("confirmPassword")}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        {...passwordForm.register("confirmPassword")}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                     {passwordForm.formState.errors.confirmPassword && (
                       <p className="text-sm text-destructive">{passwordForm.formState.errors.confirmPassword.message}</p>
                     )}

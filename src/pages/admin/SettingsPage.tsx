@@ -30,6 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Eye, EyeOff } from "lucide-react";
 
 interface UpdateProfileResponse {
   message: string;
@@ -48,7 +49,9 @@ interface DeleteAccountResponse {
 const profileFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
-  phoneNumber: z.string().min(10, "Phone number must be at least 10 characters"),
+  phoneNumber: z.string()
+    .min(10, "Phone number must be at least 10 characters")
+    .regex(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/, "Invalid phone number format"),
   description: z.string().optional(),
   profileImage: z.string().optional(),
   department: z.string(),
@@ -76,6 +79,9 @@ const SettingsPage = () => {
   const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -276,8 +282,16 @@ const SettingsPage = () => {
                     <FormItem>
                       <FormLabel>Phone Number</FormLabel>
                       <FormControl>
-                        <Input placeholder="Your phone number" {...field} />
+                        <Input 
+                          placeholder="+1234567890" 
+                          {...field} 
+                          type="tel"
+                          pattern="[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}"
+                        />
                       </FormControl>
+                      <FormDescription>
+                        Enter your phone number with country code (e.g., +1234567890)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -349,7 +363,26 @@ const SettingsPage = () => {
                       <FormItem>
                         <FormLabel>Current Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
+                          <div className="relative">
+                            <Input 
+                              type={showCurrentPassword ? "text" : "password"} 
+                              placeholder="••••••••" 
+                              {...field} 
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            >
+                              {showCurrentPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -363,7 +396,26 @@ const SettingsPage = () => {
                       <FormItem>
                         <FormLabel>New Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
+                          <div className="relative">
+                            <Input 
+                              type={showNewPassword ? "text" : "password"} 
+                              placeholder="••••••••" 
+                              {...field} 
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                            >
+                              {showNewPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </FormControl>
                         <FormDescription>
                           Password must be at least 8 characters
@@ -380,7 +432,26 @@ const SettingsPage = () => {
                       <FormItem>
                         <FormLabel>Confirm New Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
+                          <div className="relative">
+                            <Input 
+                              type={showConfirmPassword ? "text" : "password"} 
+                              placeholder="••••••••" 
+                              {...field} 
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

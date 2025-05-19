@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,10 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { User, Department, SkillLevel } from "@/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Eye, EyeOff } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsPage() {
   const { currentUser, updateCurrentUser, logout } = useAppContext();
+  const { toast } = useToast();
   const [formData, setFormData] = useState<User | null>(currentUser);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   
   if (!formData || !currentUser) return null;
 
@@ -32,10 +38,41 @@ export default function SettingsPage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData) {
-      updateCurrentUser(formData);
+    if (!formData) return;
+
+    setIsUpdating(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/users/${currentUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update profile');
+      }
+
+      updateCurrentUser(data.user);
+      toast({
+        title: "Success",
+        description: "Profile updated successfully"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update profile",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -84,10 +121,16 @@ export default function SettingsPage() {
                 <Input
                   id="phoneNumber"
                   name="phoneNumber"
+                  type="tel"
+                  pattern="[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}"
+                  placeholder="+1234567890"
                   value={formData.phoneNumber}
                   onChange={handleChange}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Enter your phone number with country code (e.g., +1234567890)
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="department">Department</Label>
@@ -145,7 +188,9 @@ export default function SettingsPage() {
             <Button variant="outline" type="reset" onClick={() => setFormData(currentUser)}>
               Cancel
             </Button>
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit" disabled={isUpdating}>
+              {isUpdating ? "Saving..." : "Save Changes"}
+            </Button>
           </CardFooter>
         </Card>
       </form>
