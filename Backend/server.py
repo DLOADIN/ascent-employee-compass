@@ -1216,17 +1216,21 @@ def get_team_leader_dashboard(current_user_id):
 @app.route('/api/tasks', methods=['POST'])
 @token_required
 def create_task(current_user_id):
-    """Create a new task"""
+    """Create a new task with department-based access control"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Verify user is a team leader
+        # Get current user's role and department
         cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
-        user = cursor.fetchone()
+        current_user = cursor.fetchone()
         
-        if not user or user['role'] != 'TeamLeader':
-            return jsonify({'error': 'Only team leaders can create tasks'}), 403
+        if not current_user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Only allow TeamLeader and Admin to create tasks
+        if current_user['role'] not in ['TeamLeader', 'Admin']:
+            return jsonify({'error': 'Only team leaders and admins can create tasks'}), 403
 
         data = request.get_json()
         required_fields = ['title', 'description', 'assignedTo', 'deadline']
@@ -1240,14 +1244,28 @@ def create_task(current_user_id):
         except (ValueError, TypeError):
             return jsonify({'error': 'Invalid assignedTo value'}), 400
 
-        # Verify assigned user exists and is in the same department
+        # Verify assigned user exists and get their department
         cursor.execute('SELECT id, department FROM users WHERE id = %s', (assigned_to,))
         assigned_user = cursor.fetchone()
         
-        if not assigned_user or assigned_user['department'] != user['department']:
-            return jsonify({'error': 'Invalid team member assignment'}), 400
+        if not assigned_user:
+            return jsonify({'error': 'Assigned user not found'}), 404
 
-        # Create the task with progress field
+        # Check department access
+        if current_user['role'] == 'TeamLeader':
+            # Customer Service team leaders can assign tasks to both Customer Service and Finance departments
+            if current_user['department'] == 'Customer-Service':
+                if assigned_user['department'] not in ['Customer-Service', 'Finance']:
+                    return jsonify({'error': 'You can only assign tasks to users in Customer Service or Finance departments'}), 403
+            else:
+                # Other team leaders can only assign tasks within their department
+                if assigned_user['department'] != current_user['department']:
+                    return jsonify({'error': 'You can only assign tasks to users in your department'}), 403
+        elif current_user['role'] == 'Admin':
+            # Admins can assign tasks across departments
+            pass
+
+        # Create the task
         cursor.execute('''
             INSERT INTO tasks (title, description, assigned_to, assigned_by, status, deadline, progress)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -1258,7 +1276,7 @@ def create_task(current_user_id):
             current_user_id,
             'Todo',
             data['deadline'],
-            data.get('progress', 0)  # Default to 0 if not provided
+            data.get('progress', 0)
         ))
         conn.commit()
         
@@ -1268,6 +1286,7 @@ def create_task(current_user_id):
             SELECT t.*, 
                    u1.name as assigned_to_name, 
                    u1.email as assigned_to_email,
+                   u1.department as assigned_to_department,
                    u2.name as assigned_by_name
             FROM tasks t
             JOIN users u1 ON t.assigned_to = u1.id
@@ -1420,7 +1439,7 @@ def delete_task(current_user_id, task_id):
 @app.route('/api/tasks/status', methods=['GET'])
 @token_required
 def get_tasks_by_status(current_user_id):
-    """Get tasks filtered by status for the current user"""
+    """Get tasks filtered by status with department-based access control"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -1437,23 +1456,55 @@ def get_tasks_by_status(current_user_id):
             return jsonify({'error': 'Invalid status'}), 400
 
         # Build query based on user role
-        if user['role'] == 'TeamLeader':
+        if user['role'] == 'Admin':
+            # Admins can see all tasks
             query = '''
                 SELECT t.*, 
                        u1.name as assigned_to_name, 
                        u1.email as assigned_to_email,
+                       u1.department as assigned_to_department,
                        u2.name as assigned_by_name
                 FROM tasks t
                 JOIN users u1 ON t.assigned_to = u1.id
                 JOIN users u2 ON t.assigned_by = u2.id
-                WHERE u1.department = %s
             '''
-            params = [user['department']]
+            params = []
+        elif user['role'] == 'TeamLeader':
+            # Customer Service team leaders can see tasks in both Customer Service and Finance departments
+            if user['department'] == 'Customer-Service':
+                query = '''
+                    SELECT t.*, 
+                           u1.name as assigned_to_name, 
+                           u1.email as assigned_to_email,
+                           u1.department as assigned_to_department,
+                           u2.name as assigned_by_name
+                    FROM tasks t
+                    JOIN users u1 ON t.assigned_to = u1.id
+                    JOIN users u2 ON t.assigned_by = u2.id
+                    WHERE u1.department IN ('Customer-Service', 'Finance')
+                '''
+                params = []
+            else:
+                # Other team leaders can only see tasks in their department
+                query = '''
+                    SELECT t.*, 
+                           u1.name as assigned_to_name, 
+                           u1.email as assigned_to_email,
+                           u1.department as assigned_to_department,
+                           u2.name as assigned_by_name
+                    FROM tasks t
+                    JOIN users u1 ON t.assigned_to = u1.id
+                    JOIN users u2 ON t.assigned_by = u2.id
+                    WHERE u1.department = %s
+                '''
+                params = [user['department']]
         else:  # Employee
+            # Employees can only see tasks assigned to them
             query = '''
                 SELECT t.*, 
                        u1.name as assigned_to_name, 
                        u1.email as assigned_to_email,
+                       u1.department as assigned_to_department,
                        u2.name as assigned_by_name
                 FROM tasks t
                 JOIN users u1 ON t.assigned_to = u1.id

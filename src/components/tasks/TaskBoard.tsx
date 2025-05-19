@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Task, User } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,20 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
     completed: []
   });
 
+  // Filter team members based on department access
+  const filteredTeamMembers = useMemo(() => {
+    if (!currentUser) return [];
+    
+    if (currentUser.role === 'Admin') {
+      // Admins can see all team members
+      return teamMembers;
+    } else if (currentUser.role === 'TeamLeader') {
+      // Team leaders can only see members in their department
+      return teamMembers.filter(member => member.department === currentUser.department);
+    }
+    return [];
+  }, [teamMembers, currentUser]);
+
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
@@ -106,7 +120,6 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
       setIsDialogOpen(false);
       form.reset();
       
-      // Instead of reloading, update the tasks list
       if (onEdit) {
         onEdit(newTask);
       }
@@ -145,12 +158,11 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
         description: "Task status updated successfully",
       });
       
-      // Use onEdit callback instead of reloading
-        if (onEdit) {
-          onEdit(updatedTask);
-        }
+      if (onEdit) {
+        onEdit(updatedTask);
+      }
     } catch (error) {
-        toast({
+      toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update task",
         variant: "destructive"
@@ -206,7 +218,7 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
             <div className="space-y-1">
               <CardTitle className="text-base">{task.title}</CardTitle>
               <CardDescription className="text-xs">
-                Assigned to: {assignedUser?.name || 'Unknown'}
+                Assigned to: {assignedUser?.name || 'Unknown'} ({assignedUser?.department || 'Unknown'})
               </CardDescription>
             </div>
             <DropdownMenu>
@@ -254,8 +266,8 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
               )}>
                 {format(new Date(task.deadline), "MMM d, yyyy")}
                 {isOverdue && <AlertCircle className="ml-1 inline h-3 w-3" />}
-          </span>
-        </div>
+              </span>
+            </div>
             {task.progress !== undefined && (
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
@@ -265,7 +277,7 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
                 <Progress value={task.progress} className="h-1" />
               </div>
             )}
-      </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -273,7 +285,7 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
 
   return (
     <div className="space-y-6">
-      {canEdit && (
+      {canEdit && filteredTeamMembers.length > 0 && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -331,9 +343,9 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {teamMembers.map((member) => (
+                          {filteredTeamMembers.map((member) => (
                             <SelectItem key={member.id} value={member.id.toString()}>
-                              {member.name}
+                              {member.name} ({member.department})
                             </SelectItem>
                           ))}
                         </SelectContent>

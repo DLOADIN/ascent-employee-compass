@@ -81,9 +81,20 @@ export default function TeamLeaderTasksPage() {
       }
 
       const allUsers = await membersResponse.json();
-      const departmentMembers = allUsers.filter(
-        (user: User) => user.department === currentUser?.department && user.role === "Employee"
-      );
+      let departmentMembers: User[] = [];
+      
+      if (currentUser?.department === 'Customer-Service' && currentUser?.role === 'TeamLeader') {
+        // Customer Service team leaders can assign tasks to both Customer Service and Finance departments
+        departmentMembers = allUsers.filter(
+          (user: User) => ['Customer-Service', 'Finance'].includes(user.department) && user.role === 'Employee'
+        );
+      } else {
+        // Other team leaders can only assign tasks to their own department
+        departmentMembers = allUsers.filter(
+          (user: User) => user.department === currentUser?.department && user.role === 'Employee'
+        );
+      }
+      
       setTeamMembers(departmentMembers);
     } catch (error) {
       console.error('Error fetching team members:', error);
@@ -127,18 +138,48 @@ export default function TeamLeaderTasksPage() {
   const inProgressTasks = teamTasks.filter(task => task.status === "In Progress").length;
   const todoTasks = teamTasks.filter(task => task.status === "Todo").length;
 
-  const handleCreateTask = (data: TaskFormValues) => {
-    addTask({
-      title: data.title,
-      description: data.description,
-      assignedTo: data.assignedTo,
-      assignedBy: currentUser.id,
-      status: "Todo",
-      deadline: data.deadline,
-      progress: 0
-    });
-    setIsDialogOpen(false);
-    form.reset();
+  const handleCreateTask = async (data: TaskFormValues) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
+
+      const response = await fetch(`${API_URL}/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: data.title,
+          description: data.description,
+          assignedTo: data.assignedTo,
+          deadline: data.deadline.toISOString(),
+          status: "Todo",
+          progress: 0
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create task');
+      }
+
+      const newTask = await response.json();
+      setTeamTasks(prevTasks => [...prevTasks, newTask]);
+      toast({
+        title: "Success",
+        description: "Task created successfully",
+      });
+      setIsDialogOpen(false);
+      form.reset();
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create task",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleEditTask = async (updatedTask: Task) => {
@@ -159,7 +200,6 @@ export default function TeamLeaderTasksPage() {
         throw new Error('Failed to update task');
       }
 
-      // Update local state with the new task
       setTeamTasks(prevTasks => 
         prevTasks.map(task => 
           task.id === updatedTask.id ? updatedTask : task
@@ -198,7 +238,6 @@ export default function TeamLeaderTasksPage() {
         throw new Error('Failed to delete task');
       }
 
-      // Update local state by removing the deleted task
       setTeamTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
 
       toast({
@@ -284,7 +323,7 @@ export default function TeamLeaderTasksPage() {
                         <SelectContent>
                           {teamMembers.map((member) => (
                             <SelectItem key={member.id} value={member.id}>
-                              {member.name}
+                              {member.name} ({member.department})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -391,7 +430,7 @@ export default function TeamLeaderTasksPage() {
                                 {member.name.charAt(0)}
                               </span>
                             </div>
-                            <span className="text-sm">{member.name}</span>
+                            <span className="text-sm">{member.name} ({member.department})</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <span className="text-xs text-muted-foreground">
