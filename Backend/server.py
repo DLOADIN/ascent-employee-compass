@@ -677,6 +677,9 @@ def get_dashboard_stats(current_user_id):
         ''')
         user_stats = cursor.fetchone()
 
+        # Convert Decimal values to integers
+        user_stats = {k: int(v) if isinstance(v, (int, float, str)) else 0 for k, v in user_stats.items()}
+
         # Get task stats
         cursor.execute('''
             SELECT 
@@ -688,6 +691,9 @@ def get_dashboard_stats(current_user_id):
         ''')
         task_stats = cursor.fetchone()
 
+        # Convert Decimal values to integers
+        task_stats = {k: int(v) if isinstance(v, (int, float, str)) else 0 for k, v in task_stats.items()}
+
         # Get department stats
         cursor.execute('''
             SELECT department, COUNT(*) as count
@@ -697,13 +703,21 @@ def get_dashboard_stats(current_user_id):
         ''')
         department_stats = cursor.fetchall()
 
+        # Convert Decimal values to integers in department stats
+        department_stats = [
+            {'name': stat['department'], 'value': int(stat['count']) if isinstance(stat['count'], (int, float, str)) else 0}
+            for stat in department_stats
+        ]
+
         # Get active sessions
         cursor.execute('SELECT COUNT(*) as count FROM login_sessions WHERE is_active = 1')
         active_sessions = cursor.fetchone()
+        active_sessions_count = int(active_sessions['count']) if isinstance(active_sessions['count'], (int, float, str)) else 0
 
         # Get course count
         cursor.execute('SELECT COUNT(*) as count FROM courses')
         course_count = cursor.fetchone()
+        course_count_value = int(course_count['count']) if isinstance(course_count['count'], (int, float, str)) else 0
 
         # Get recent sessions with user info
         cursor.execute('''
@@ -720,12 +734,9 @@ def get_dashboard_stats(current_user_id):
             'activeUsers': user_stats['active_users'],
             'totalTasks': task_stats['total_tasks'],
             'completedTasks': task_stats['completed_tasks'],
-            'totalCourses': course_count['count'],
-            'activeSessions': active_sessions['count'],
-            'departmentStats': [
-                {'name': stat['department'], 'value': stat['count']}
-                for stat in department_stats
-            ],
+            'totalCourses': course_count_value,
+            'activeSessions': active_sessions_count,
+            'departmentStats': department_stats,
             'taskStats': [
                 {'name': 'Completed', 'value': task_stats['completed_tasks']},
                 {'name': 'In Progress', 'value': task_stats['in_progress_tasks']},

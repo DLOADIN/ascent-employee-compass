@@ -272,7 +272,6 @@ const SettingsPage = () => {
                   <Input
                     id="phoneNumber"
                     type="tel"
-                    pattern="[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}"
                     placeholder="+1234567890"
                     {...profileForm.register("phoneNumber")}
                   />

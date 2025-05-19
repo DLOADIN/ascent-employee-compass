@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppContext } from "@/context/AppContext";
-import { BarChart, PieChart, Bar, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { BarChart, PieChart, Bar, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from "recharts";
 import { User, Users, FileText, BookOpen } from "lucide-react";
 import axios from "axios";
 
@@ -17,6 +17,37 @@ interface DashboardStats {
   roleStats: { name: string; value: number }[];
   recentSessions?: { id: string; userName: string; loginTime: string; isActive: boolean }[];
 }
+
+// Add custom colors for the charts
+const COLORS = {
+  taskStatus: {
+    Completed: "#22c55e", // green-500
+    "In Progress": "#eab308", // yellow-500
+    Todo: "#3b82f6", // blue-500
+  },
+  userRoles: {
+    Admins: "#ef4444", // red-500
+    "Team Leaders": "#8b5cf6", // purple-500
+    Employees: "#0ea5e9", // sky-500
+  }
+};
+
+// Custom tooltip component for pie charts
+const CustomTooltip = ({ active, payload, type }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const color = type === 'task' ? COLORS.taskStatus[data.name] : COLORS.userRoles[data.name];
+    return (
+      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border">
+        <p className="font-medium" style={{ color }}>{data.name}</p>
+        <p className="text-sm text-muted-foreground">
+          {data.value} {type === 'task' ? 'tasks' : 'users'} ({((data.value / payload[0].payload.total) * 100).toFixed(1)}%)
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -122,17 +153,29 @@ export default function AdminDashboard() {
             <div className="h-[300px] flex items-center justify-center">
               <PieChart width={300} height={300}>
                 <Pie
-                  data={stats.roleStats}
+                  data={stats.roleStats.map(item => ({
+                    ...item,
+                    total: stats.totalUsers
+                  }))}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
                   outerRadius={80}
-                  fill="#8884d8"
+                  paddingAngle={2}
                   dataKey="value"
-                  label
+                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  labelLine={false}
+                >
+                  {stats.roleStats.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS.userRoles[entry.name]} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip type="role" />} />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  formatter={(value) => <span className="text-sm">{value}</span>}
                 />
-                <Tooltip />
-                <Legend />
               </PieChart>
             </div>
           </CardContent>
@@ -172,17 +215,29 @@ export default function AdminDashboard() {
             <div className="h-[300px] flex items-center justify-center">
               <PieChart width={300} height={300}>
                 <Pie
-                  data={stats.taskStats}
+                  data={stats.taskStats.map(item => ({
+                    ...item,
+                    total: stats.totalTasks
+                  }))}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
                   outerRadius={80}
-                  fill="#8884d8"
+                  paddingAngle={2}
                   dataKey="value"
-                  label
+                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  labelLine={false}
+                >
+                  {stats.taskStats.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS.taskStatus[entry.name]} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip type="task" />} />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  formatter={(value) => <span className="text-sm">{value}</span>}
                 />
-                <Tooltip />
-                <Legend />
               </PieChart>
             </div>
           </CardContent>

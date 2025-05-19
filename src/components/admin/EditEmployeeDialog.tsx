@@ -33,7 +33,10 @@ const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
   role: z.enum(["Admin", "Employee", "TeamLeader"]),
   department: z.enum(["IT", "Finance", "Sales", "Customer-Service"]).optional(),
-  phoneNumber: z.string().min(10, { message: "Phone number must be at least 10 digits." }),
+  phoneNumber: z.string()
+    .min(10, { message: "Phone number must be at least 10 digits." })
+    .regex(/^[+]?[(]?[0-9]{3,4}[)]?[-\s.]?[0-9]{3,4}[-\s.]?[0-9]{4,6}$/,
+      { message: "Enter a valid phone number (e.g. +250123456789 or 0791234567)" }),
   skillLevel: z.enum(["Beginner", "Intermediate", "Advanced"]).optional(),
   experience: z.coerce.number().min(0).optional(),
   experienceLevel: z.coerce.number().min(0).max(20).optional(),
@@ -229,8 +232,9 @@ export function EditEmployeeDialog({ user, open, onOpenChange, onSubmit }: EditE
                 <FormItem>
                   <FormLabel>Phone Number</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} type="tel" placeholder="e.g. +250123456789 or 0791234567" />
                   </FormControl>
+                  <FormDescription>Include country code if possible. Only digits and + allowed.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -275,7 +279,7 @@ export function EditEmployeeDialog({ user, open, onOpenChange, onSubmit }: EditE
               />
             </div>
 
-            <FormField
+            {/* <FormField
               control={form.control}
               name="experienceLevel"
               render={({ field }) => (
@@ -294,7 +298,7 @@ export function EditEmployeeDialog({ user, open, onOpenChange, onSubmit }: EditE
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            /> */}
 
             <FormField
               control={form.control}

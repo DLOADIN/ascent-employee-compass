@@ -122,7 +122,6 @@ export default function SettingsPage() {
                   id="phoneNumber"
                   name="phoneNumber"
                   type="tel"
-                  pattern="[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}"
                   placeholder="+1234567890"
                   value={formData.phoneNumber}
                   onChange={handleChange}
