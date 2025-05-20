@@ -773,8 +773,6 @@ def get_notifications(current_user_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
-        # All users see all notifications
         cursor.execute('''
             SELECT n.id, n.title, n.message, n.created_at as createdAt, n.is_read, n.user_id, n.type, n.link
             FROM notifications n
@@ -785,7 +783,6 @@ def get_notifications(current_user_id):
             if isinstance(n['createdAt'], datetime.datetime):
                 n['createdAt'] = n['createdAt'].isoformat()
         return jsonify(notifications)
-    
     except Exception as e:
         logger.error(f"Error fetching notifications: {str(e)}")
         return jsonify({'message': 'Error fetching notifications'}), 500

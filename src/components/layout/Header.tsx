@@ -97,11 +97,10 @@ export function Header({ onToggleSidebar }: HeaderProps) {
             <div className="max-h-80 overflow-y-auto">
               {notificationsLoading ? (
                 <div className="p-3 text-center text-muted-foreground">Loading notifications...</div>
-              ) : notifications.filter((notification) => notification.userId === currentUser.id).length === 0 ? (
+              ) : notifications.length === 0 ? (
                 <div className="p-3 text-center text-muted-foreground">No notifications</div>
               ) : (
                 notifications
-                  .filter((notification) => notification.userId === currentUser.id)
                   .sort((a, b) => (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0))
                   .map((notification) => (
                     <div
