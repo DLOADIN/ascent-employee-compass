@@ -3,6 +3,7 @@ import { User, Task, Course, JobOpportunity, Notification, LoginSession } from '
 import { mockUsers, mockTasks, mockCourses, mockJobOpportunities, mockNotifications, mockLoginSessions } from '@/data/mockData';
 import { useToast } from "@/components/ui/use-toast";
 import { login as authLogin, transformUserData } from '@/services/auth';
+import axios from 'axios';
 
 interface AppContextType {
   currentUser: User | null;
@@ -13,6 +14,8 @@ interface AppContextType {
   jobOpportunities: JobOpportunity[];
   notifications: Notification[];
   loginSessions: LoginSession[];
+  notificationsLoading: boolean;
+  fetchNotifications: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ success: boolean; redirect?: string }>;
   logout: () => void;
   updateCurrentUser: (user: User) => void;
@@ -39,7 +42,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
   const [courses, setCourses] = useState<Course[]>(mockCourses);
   const [jobOpportunities, setJobOpportunities] = useState<JobOpportunity[]>(mockJobOpportunities);
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [loginSessions, setLoginSessions] = useState<LoginSession[]>(mockLoginSessions);
 
   // Check for existing auth on mount
@@ -74,6 +78,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
   }, []);
+
+  // Fetch notifications from backend
+  const fetchNotifications = async () => {
+    if (!token) return;
+    setNotificationsLoading(true);
+    try {
+      const { data } = await axios.get('http://localhost:5000/api/notifications', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Transform backend fields to Notification type
+      const transformed = data.map((n: any) => ({
+        id: n.id?.toString(),
+        title: n.title,
+        message: n.message,
+        createdAt: n.createdAt ? new Date(n.createdAt) : undefined,
+        isRead: n.is_read === 1 || n.is_read === true,
+        userId: n.user_id?.toString(),
+        type: n.type,
+        link: n.link || undefined,
+      }));
+      setNotifications(transformed);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  // Fetch notifications on mount and when token changes
+  useEffect(() => {
+    if (token) {
+      fetchNotifications();
+    }
+  }, [token]);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; redirect?: string }> => {
     try {
@@ -300,7 +338,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     courses,
     jobOpportunities,
     notifications,
+    notificationsLoading,
     loginSessions,
+    fetchNotifications,
     login,
     logout,
     updateCurrentUser,

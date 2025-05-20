@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, ChevronDown, Menu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -27,7 +26,7 @@ interface HeaderProps {
 }
 
 export function Header({ onToggleSidebar }: HeaderProps) {
-  const { currentUser, notifications, markNotificationAsRead, logout } = useAppContext();
+  const { currentUser, notifications, markNotificationAsRead, logout, fetchNotifications, notificationsLoading } = useAppContext();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   if (!currentUser) return null;
@@ -49,6 +48,14 @@ export function Header({ onToggleSidebar }: HeaderProps) {
       .substring(0, 2);
   };
 
+  // Fetch notifications when popover is opened
+  const handleNotificationsOpenChange = (open: boolean) => {
+    setIsNotificationsOpen(open);
+    if (open) {
+      fetchNotifications();
+    }
+  };
+
   return (
     <header className="h-16 border-b border-border bg-background px-4 flex items-center justify-between">
       <div className="flex items-center">
@@ -66,7 +73,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
       <div className="flex items-center space-x-2">
         <ThemeToggle />
 
-        <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+        <Popover open={isNotificationsOpen} onOpenChange={handleNotificationsOpenChange}>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
@@ -88,35 +95,34 @@ export function Header({ onToggleSidebar }: HeaderProps) {
               )}
             </div>
             <div className="max-h-80 overflow-y-auto">
-              {notifications
-                .filter((notification) => notification.userId === currentUser.id)
-                .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-                .map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={cn(
-                      "p-3 border-b border-border last:border-b-0 cursor-pointer",
-                      !notification.isRead && "bg-muted/50"
-                    )}
-                    onClick={() => handleNotificationClick(notification)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-medium">{notification.title}</h4>
-                      <span className="text-xs text-muted-foreground">
-                        {notification.createdAt.toLocaleDateString()}
-                      </span>
+              {notificationsLoading ? (
+                <div className="p-3 text-center text-muted-foreground">Loading notifications...</div>
+              ) : notifications.filter((notification) => notification.userId === currentUser.id).length === 0 ? (
+                <div className="p-3 text-center text-muted-foreground">No notifications</div>
+              ) : (
+                notifications
+                  .filter((notification) => notification.userId === currentUser.id)
+                  .sort((a, b) => (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0))
+                  .map((notification) => (
+                    <div
+                      key={notification.id}
+                      className={cn(
+                        "p-3 border-b border-border last:border-b-0 cursor-pointer",
+                        !notification.isRead && "bg-muted/50"
+                      )}
+                      onClick={() => handleNotificationClick(notification)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-medium">{notification.title}</h4>
+                        <span className="text-xs text-muted-foreground">
+                          {notification.createdAt ? notification.createdAt.toLocaleDateString() : ''}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {notification.message}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {notification.message}
-                    </p>
-                  </div>
-                ))}
-              {notifications.filter(
-                (notification) => notification.userId === currentUser.id
-              ).length === 0 && (
-                <div className="p-3 text-center text-muted-foreground">
-                  No notifications
-                </div>
+                  ))
               )}
             </div>
           </PopoverContent>

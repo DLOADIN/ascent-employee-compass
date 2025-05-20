@@ -774,33 +774,16 @@ def get_notifications(current_user_id):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Get user's role and department
-        cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
-        current_user = cursor.fetchone()
-        
-        # Build query based on user role
-        if current_user['role'] == 'Admin':
-            cursor.execute('''
-                SELECT n.*, u.name as user_name, u.department,
-                       DATE(n.created_at) as createdAt
-                FROM notifications n
-                LEFT JOIN users u ON n.user_id = u.id
-                ORDER BY n.created_at DESC
-                LIMIT 10
-            ''')
-        else:
-            # For non-admin users, get notifications for their department or directed to them
-            cursor.execute('''
-                SELECT n.*, u.name as user_name, u.department,
-                       DATE(n.created_at) as createdAt
-                FROM notifications n
-                LEFT JOIN users u ON n.user_id = u.id
-                WHERE n.user_id = %s OR u.department = %s
-                ORDER BY n.created_at DESC
-                LIMIT 10
-            ''', (current_user_id, current_user['department']))
-        
+        # All users see all notifications
+        cursor.execute('''
+            SELECT n.id, n.title, n.message, n.created_at as createdAt, n.is_read, n.user_id, n.type, n.link
+            FROM notifications n
+            ORDER BY n.created_at DESC
+        ''')
         notifications = cursor.fetchall()
+        for n in notifications:
+            if isinstance(n['createdAt'], datetime.datetime):
+                n['createdAt'] = n['createdAt'].isoformat()
         return jsonify(notifications)
     
     except Exception as e:

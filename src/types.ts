@@ -1,4 +1,3 @@
-
 // User Roles
 export type UserRole = "Admin" | "TeamLeader" | "Employee";
 
@@ -90,16 +89,12 @@ export type NotificationStatus = "Unread" | "Read";
 // Notification
 export interface Notification {
   id: string;
-  type: NotificationType;
   title: string;
   message: string;
-  status?: NotificationStatus;
-  timestamp?: Date;
   createdAt?: Date;
   isRead?: boolean;
   userId?: string;
-  sender?: string;
-  relatedId?: string;
+  type?: string;
   link?: string;
 }
 
