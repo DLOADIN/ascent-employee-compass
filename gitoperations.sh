@@ -1,4 +1,4 @@
 #!/bin/bash
 git add .
-git commit -m "Auto-commit: $(date)"
+git commit -m "$1"
 git push origin main

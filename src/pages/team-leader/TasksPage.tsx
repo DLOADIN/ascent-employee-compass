@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Task, User } from "@/types";
+import { Task, User } from "@/types/index";
 import { useAppContext } from "@/context/AppContext";
 import { TaskBoard } from "@/components/tasks/TaskBoard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,8 +53,8 @@ export default function TeamLeaderTasksPage() {
         throw new Error('Failed to fetch tasks');
       }
 
-      const tasks = await tasksResponse.json();
-      setTeamTasks(tasks);
+      const response = await tasksResponse.json();
+      setTeamTasks(response.tasks || []);
     } catch (error) {
       console.error('Error fetching tasks:', error);
       toast({
@@ -322,7 +322,7 @@ export default function TeamLeaderTasksPage() {
                         </FormControl>
                         <SelectContent>
                           {teamMembers.map((member) => (
-                            <SelectItem key={member.id} value={member.id}>
+                            <SelectItem key={member.id} value={String(member.id)}>
                               {member.name} ({member.department})
                             </SelectItem>
                           ))}

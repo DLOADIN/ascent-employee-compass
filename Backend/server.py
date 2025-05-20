@@ -687,7 +687,12 @@ def get_dashboard_stats(current_user_id):
         task_stats = cursor.fetchone()
 
         # Convert Decimal values to integers
-        task_stats = {k: int(v) if isinstance(v, (int, float, str)) else 0 for k, v in task_stats.items()}
+        task_stats = {
+            'total_tasks': int(task_stats['total_tasks']),
+            'completed_tasks': int(task_stats['completed_tasks']),
+            'in_progress_tasks': int(task_stats['in_progress_tasks']),
+            'todo_tasks': int(task_stats['todo_tasks'])
+        }
 
         # Get department stats
         cursor.execute('''
@@ -1106,12 +1111,12 @@ def get_team_leader_dashboard(current_user_id):
                 'todo_tasks': 0
             }
         else:
-            # Convert any remaining NULL values to 0
+            # Convert Decimal values to integers
             task_stats = {
-                'total_tasks': task_stats['total_tasks'] or 0,
-                'completed_tasks': task_stats['completed_tasks'] or 0,
-                'in_progress_tasks': task_stats['in_progress_tasks'] or 0,
-                'todo_tasks': task_stats['todo_tasks'] or 0
+                'total_tasks': int(task_stats['total_tasks']),
+                'completed_tasks': int(task_stats['completed_tasks']),
+                'in_progress_tasks': int(task_stats['in_progress_tasks']),
+                'todo_tasks': int(task_stats['todo_tasks'])
             }
 
         # Get department courses
@@ -1279,7 +1284,7 @@ def create_task(current_user_id):
             data.get('progress', 0)
         ))
         conn.commit()
-        
+
         # Get the created task with assigned user info
         task_id = cursor.lastrowid
         cursor.execute('''
@@ -1526,7 +1531,7 @@ def get_tasks_by_status(current_user_id):
         
         cursor.execute(query, tuple(params))
         tasks = cursor.fetchall()
-
+        
         # Calculate overall progress
         total_progress = 0
         for task in tasks:
@@ -1678,6 +1683,113 @@ def update_task_progress(current_user_id, task_id):
         
     except Exception as e:
         logger.error(f"Error updating task progress: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/employee/dashboard', methods=['GET'])
+@token_required
+def get_employee_dashboard(current_user_id):
+    """
+    Returns dashboard data for the logged-in employee.
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Get employee info
+        cursor.execute('SELECT * FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        if not user or user['role'] != 'Employee':
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        department = user['department']
+
+        # Get all tasks for this employee
+        cursor.execute('''
+            SELECT t.*, u2.name as assigned_by_name FROM tasks t
+            JOIN users u2 ON t.assigned_by = u2.id
+            WHERE t.assigned_to = %s
+        ''', (current_user_id,))
+        tasks = cursor.fetchall()
+
+        total_tasks = len(tasks)
+        completed = sum(1 for t in tasks if t['status'] == 'Completed')
+        in_progress = sum(1 for t in tasks if t['status'] == 'In Progress')
+        todo = sum(1 for t in tasks if t['status'] == 'Todo')
+        overall_progress = round(sum(t['progress'] or 0 for t in tasks) / total_tasks) if total_tasks else 0
+
+        # Get upcoming tasks (next 5 by deadline)
+        upcoming = sorted(tasks, key=lambda t: t['deadline'])[:5]
+
+        # Get department courses
+        cursor.execute('SELECT * FROM courses WHERE department = %s', (department,))
+        courses = cursor.fetchall()
+        total_courses = len(courses)
+
+        # Get course enrollments for this user
+        cursor.execute('''
+            SELECT ce.*, c.title, c.description
+            FROM course_enrollments ce
+            JOIN courses c ON ce.course_id = c.id
+            WHERE ce.user_id = %s
+        ''', (current_user_id,))
+        enrollments = cursor.fetchall()
+        enrolled = len(enrollments)
+        completed_courses = sum(1 for e in enrollments if e['completed'])
+
+        dashboard_data = {
+            "department": department,
+            "tasks": {
+                "total": total_tasks,
+                "completed": completed,
+                "in_progress": in_progress,
+                "todo": todo,
+                "overall_progress": overall_progress,
+                "upcoming": [
+                    {
+                        "id": str(t['id']),
+                        "title": t['title'],
+                        "description": t['description'],
+                        "deadline": t['deadline'].isoformat() if hasattr(t['deadline'], 'isoformat') else str(t['deadline']),
+                        "status": t['status'],
+                        "progress": t['progress'],
+                        "assigned_by_name": t.get('assigned_by_name', '')
+                    }
+                    for t in upcoming
+                ]
+            },
+            "courses": {
+                "total": total_courses,
+                "enrolled": enrolled,
+                "completed": completed_courses,
+                "list": [
+                    {
+                        "id": str(e['course_id']),
+                        "title": e['title'],
+                        "description": e['description'],
+                        "user_progress": e['progress'],
+                        "is_completed": bool(e['completed'])
+                    }
+                    for e in enrollments
+                ]
+            },
+            "department_stats": {
+                "total_tasks": total_tasks,
+                "completed_tasks": completed,
+                "total_courses": total_courses,
+                "enrolled_courses": enrolled,
+                "progress": {
+                    "tasks": overall_progress,
+                    "courses": round((completed_courses / total_courses) * 100) if total_courses else 0
+                }
+            }
+        }
+
+        return jsonify(dashboard_data)
+    except Exception as e:
+        logger.error(f"Error fetching employee dashboard: {str(e)}")
         return jsonify({'error': 'Server error'}), 500
     finally:
         cursor.close()
