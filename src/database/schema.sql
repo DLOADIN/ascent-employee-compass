@@ -64,6 +64,9 @@ CREATE TABLE courses (
     department ENUM('IT','Finance','Sales','Customer-Service'),
     video_url VARCHAR(255) NOT NULL,
     thumbnail_url VARCHAR(255),
+    video_type ENUM('youtube', 'other') DEFAULT 'youtube',
+    duration VARCHAR(50),
+    difficulty ENUM('Beginner', 'Intermediate', 'Advanced') DEFAULT 'Beginner',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -76,11 +79,15 @@ CREATE TABLE course_enrollments (
     completed TINYINT(1) DEFAULT 0,
     enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP NULL DEFAULT NULL,
+    last_accessed_at TIMESTAMP NULL DEFAULT NULL,
+    total_watch_time INT DEFAULT 0, -- in seconds
+    last_watch_position INT DEFAULT 0, -- in seconds
     PRIMARY KEY (user_id, course_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
 );
 
+9
 -- JOB_OPPORTUNITIES TABLE
 CREATE TABLE job_opportunities (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -137,6 +144,18 @@ CREATE INDEX idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX idx_notifications_created_at ON notifications(created_at);
 CREATE INDEX idx_login_sessions_user_id ON login_sessions(user_id);
 CREATE INDEX idx_login_sessions_login_time ON login_sessions(login_time);
+CREATE INDEX idx_course_enrollments_user ON course_enrollments(user_id);
+CREATE INDEX idx_course_enrollments_course ON course_enrollments(course_id);
+CREATE INDEX idx_watch_history_user ON course_watch_history(user_id);
+CREATE INDEX idx_watch_history_course ON course_watch_history(course_id);
+CREATE INDEX idx_watch_history_date ON course_watch_history(watch_date);
+CREATE INDEX idx_interactions_user ON course_interactions(user_id);
+CREATE INDEX idx_interactions_course ON course_interactions(course_id);
+CREATE INDEX idx_interactions_type ON course_interactions(interaction_type);
+CREATE INDEX idx_quiz_attempts_user ON course_quiz_attempts(user_id);
+CREATE INDEX idx_quiz_attempts_quiz ON course_quiz_attempts(quiz_id);
+CREATE INDEX idx_certificates_user ON course_certificates(user_id);
+CREATE INDEX idx_certificates_course ON course_certificates(course_id);
 
 INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `department`, `phone_number`, `skill_level`, `experience`, `experience_level`, `description`, `profile_image_url`, `is_active`, `created_at`, `updated_at`) VALUES
 (1, 'John Doe', 'admin@gmail.com', 'scrypt:32768:8:1$Zw5glzBMAGFYE7jD$15c41f88eff5cf4912165649db0818c60ce7272174fb3bc468035929e2e34630108e3cc2abe69af0723c1f7a98b1012b31961efada00fcfcef5d1a07a4a36210', 'Admin', 'Admin', '0791289100', 'Advanced', 5, 3, 'I am the main system Administrator', '', 1, '2025-05-14 17:00:59', '2025-05-16 12:54:37'),
@@ -149,3 +168,15 @@ INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `department
 (8, 'Team Leader Customer-Service', 'teamlead.customerservice@hrms.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKyNiGpJ4P6XyJ2', 'TeamLeader', 'Customer-Service', '+1234567897', 'Advanced', 4, 2, 'Customer Service Team Leader', NULL, 1, '2025-05-14 17:06:17', '2025-05-15 13:44:19'),
 (9, 'Customer Service Employee', 'employee.customerservice@hrms.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKyNiGpJ4P6XyJ2', 'Employee', 'Customer-Service', '+1234567898', 'Intermediate', 2, 1, 'Customer Service Department Employee', NULL, 1, '2025-05-14 17:06:17', '2025-05-15 13:44:09'),
 (10, 'Brian Joe', 'brian@gmal.com', 'scrypt:32768:8:1$ha6ptfvXoPQyaHjO$b4be85bc8652417122e555f1432d8402960a91f5ad24572eddf29328c59d4186c62d0e6ac0d6360131199cd9fe8ccf2fb736028c2cef4d0d8ddf506d8860802d', 'Employee', 'IT', '+250123456789', 'Beginner', 0, NULL, 'None', NULL, 1, '2025-05-16 13:04:06', '2025-05-16 14:16:51');
+
+-- Sample course data for IT department
+INSERT INTO courses (title, description, department, video_url, thumbnail_url, video_type, duration, difficulty) VALUES
+('Introduction to Software Development', 'Learn the basics of software development and programming concepts', 'IT', 'https://www.youtube.com/embed/VIDEO_ID_1', 'https://img.youtube.com/vi/VIDEO_ID_1/maxresdefault.jpg', 'youtube', '10:00', 'Beginner'),
+('Web Development Fundamentals', 'Master the fundamentals of web development including HTML, CSS, and JavaScript', 'IT', 'https://www.youtube.com/embed/VIDEO_ID_2', 'https://img.youtube.com/vi/VIDEO_ID_2/maxresdefault.jpg', 'youtube', '15:00', 'Beginner'),
+('Database Design Principles', 'Learn essential database design principles and SQL', 'IT', 'https://www.youtube.com/embed/VIDEO_ID_3', 'https://img.youtube.com/vi/VIDEO_ID_3/maxresdefault.jpg', 'youtube', '20:00', 'Intermediate');
+
+-- Sample course data for Finance department
+INSERT INTO courses (title, description, department, video_url, thumbnail_url, video_type, duration, difficulty) VALUES
+('Financial Accounting Basics', 'Learn the fundamentals of financial accounting', 'Finance', 'https://www.youtube.com/embed/VIDEO_ID_4', 'https://img.youtube.com/vi/VIDEO_ID_4/maxresdefault.jpg', 'youtube', '12:00', 'Beginner'),
+('Investment Strategies', 'Master different investment strategies and portfolio management', 'Finance', 'https://www.youtube.com/embed/VIDEO_ID_5', 'https://img.youtube.com/vi/VIDEO_ID_5/maxresdefault.jpg', 'youtube', '18:00', 'Intermediate'),
+('Financial Analysis Techniques', 'Learn advanced financial analysis techniques', 'Finance', 'https://www.youtube.com/embed/VIDEO_ID_6', 'https://img.youtube.com/vi/VIDEO_ID_6/maxresdefault.jpg', 'youtube', '25:00', 'Advanced');

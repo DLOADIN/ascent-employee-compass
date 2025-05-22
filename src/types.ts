@@ -66,6 +66,7 @@ export interface Course {
   progress?: number;
   status?: "Not Started" | "In Progress" | "Completed";
   enrolledAt?: Date;
+  lastWatchPosition?: number;
 }
 
 // Job Opportunity type
