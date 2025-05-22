@@ -13,10 +13,10 @@ export const courseTutorials: Tutorial[] = [
   // IT Department Tutorials
   {
     id: 'it-1',
-    title: 'Learn Adobe Premiere Pro Start to Finish | 2 Hour Workshop',
-    description: 'Master Adobe Premiere Pro with this comprehensive 2-hour workshop',
-    videoUrl: 'https://www.youtube.com/embed/oLMdXC_B1vQ',
-    thumbnailUrl: 'https://img.youtube.com/vi/oLMdXC_B1vQ/maxresdefault.jpg',
+    title: 'Complete Docker Course - From BEGINNER to PRO! (Learn Containers)',
+    description: 'Complete Docker Course - From BEGINNER to PRO! (Learn Containers)',
+    videoUrl: 'https://www.youtube.com/embed/RqTEHSBrYFw',
+    thumbnailUrl: 'https://img.youtube.com/vi/RqTEHSBrYFw/maxresdefault.jpg',
     duration: '2:00:00',
     difficulty: 'Beginner',
     department: 'IT'
@@ -45,16 +45,16 @@ export const courseTutorials: Tutorial[] = [
     id: 'it-4',
     title: 'C++ Tutorial for Beginners - ProgrammingKnowledge',
     description: 'Learn Linux operating system fundamentals and commands',
-    videoUrl: 'https://www.youtube.com/watch?v=cpp_tutorial_pk',
-    thumbnailUrl: 'https://img.youtube.com/vi/cpp_tutorial_pk/maxresdefault.jpg',
+    videoUrl: 'https://www.youtube.com/embed/2T86xAtR6Fo',
+    thumbnailUrl: 'https://img.youtube.com/vi/2T86xAtR6Fo/maxresdefault.jpg',
     duration: '2:00:00',
     difficulty: 'Beginner',
     department: 'IT'
   },
   {
     id: 'it-5',
-    title: 'Networking Fundamentals Full Course',
-    description: 'Master the basics of computer networking and protocols',
+    title: 'Complete Kubernetes Course - From BEGINNER to PRO',
+    description: 'Complete Kubernetes Course - From BEGINNER to PRO',
     videoUrl: 'https://www.youtube.com/embed/qiQR5rTSshw',
     thumbnailUrl: 'https://img.youtube.com/vi/qiQR5rTSshw/maxresdefault.jpg',
     duration: '3:00:00',
