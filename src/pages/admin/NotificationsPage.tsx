@@ -223,7 +223,6 @@ const NotificationsPage = () => {
                       <SelectItem value="general">General</SelectItem>
                       <SelectItem value="job">Job Opportunity</SelectItem>
                       <SelectItem value="course">Course</SelectItem>
-                      <SelectItem value="task">Task</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

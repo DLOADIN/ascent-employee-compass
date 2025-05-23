@@ -219,7 +219,7 @@ export default function CoursesPage() {
           {departmentTutorials.length === 0 ? (
             <Card>
               <CardContent className="pt-6 text-center py-10">
-                <BookOpenCheck className="h-12 w-12 mx-auto text-muted-foreground" />
+                <BookOpenCheck className="h-20 w-12 mx-auto text-muted-foreground" />
                 <p className="mt-4 text-muted-foreground">
                   No tutorials available for your department.
                 </p>
