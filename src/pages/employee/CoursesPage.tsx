@@ -235,7 +235,7 @@ export default function CoursesPage() {
                   <Card key={tutorial.id} className="flex flex-col">
                     <div className="aspect-video w-full bg-muted relative">
                       {tutorial.thumbnailUrl ? (
-                        <img
+                      <img
                           src={tutorial.thumbnailUrl}
                           alt={tutorial.title}
                         className="object-cover w-full h-full"

@@ -5,6 +5,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { login as authLogin, transformUserData } from '@/services/auth';
 import axios from 'axios';
 
+const API_URL = 'http://localhost:5000/api';
+
 interface AppContextType {
   currentUser: User | null;
   token: string | null;
@@ -48,35 +50,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Check for existing auth on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    if (token && savedUser) {
-      try {
-        const user = JSON.parse(savedUser);
-      setCurrentUser(user);
-        
-        // Add a new login session if one doesn't exist
-        const existingSession = loginSessions.find(
-          session => session.userId === user.id && session.isActive
-        );
-        
-        if (!existingSession) {
-          const newSession: LoginSession = {
-            id: Date.now().toString(),
-            userId: user.id,
-            userAgent: navigator.userAgent,
-            ipAddress: "127.0.0.1",
-            loginTime: new Date(),
-            isActive: true
-          };
-          setLoginSessions([...loginSessions, newSession]);
+    const validateAndRestoreAuth = async () => {
+      const token = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('user');
+      
+      if (token && savedUser) {
+        try {
+          // Validate token with backend
+          const response = await axios.get(`${API_URL}/auth/validate`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          
+          if (response.status === 200) {
+            const user = JSON.parse(savedUser);
+            setCurrentUser(user);
+            setToken(token);
+            
+            // Add a new login session if one doesn't exist
+            const existingSession = loginSessions.find(
+              session => session.userId === user.id && session.isActive
+            );
+            
+            if (!existingSession) {
+              const newSession: LoginSession = {
+                id: Date.now().toString(),
+                userId: user.id,
+                userAgent: navigator.userAgent,
+                ipAddress: "127.0.0.1",
+                loginTime: new Date(),
+                isActive: true
+              };
+              setLoginSessions([...loginSessions, newSession]);
+            }
+          } else {
+            // Token is invalid, clear auth data
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setCurrentUser(null);
+            setToken(null);
+          }
+        } catch (error) {
+          console.error('Error validating authentication state:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setCurrentUser(null);
+          setToken(null);
         }
-      } catch (error) {
-        console.error('Error restoring authentication state:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
       }
-    }
+    };
+
+    validateAndRestoreAuth();
   }, []);
 
   // Fetch notifications from backend
