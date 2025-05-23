@@ -1953,6 +1953,57 @@ def get_team_course_progress(current_user_id):
         cursor.close()
         conn.close()
 
+@app.route('/api/team-leader/department-employees', methods=['GET'])
+@token_required
+def get_department_employees(current_user_id):
+    """Get all employees from the team leader's department"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verify user is a team leader and get their department
+        cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        
+        if not user or user['role'] != 'TeamLeader':
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        # Get all employees from the team leader's department
+        cursor.execute('''
+            SELECT 
+                id,
+                name,
+                email,
+                phone_number,
+                skill_level,
+                experience,
+                experience_level,
+                description,
+                profile_image_url,
+                is_active,
+                created_at
+            FROM users 
+            WHERE department = %s 
+            AND role = 'Employee'
+            ORDER BY name
+        ''', (user['department'],))
+        
+        employees = cursor.fetchall()
+        
+        # Convert datetime objects to strings
+        for employee in employees:
+            if employee['created_at']:
+                employee['created_at'] = employee['created_at'].isoformat()
+        
+        return jsonify(employees)
+
+    except Exception as e:
+        logger.error(f"Error fetching department employees: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 if __name__ == '__main__':
     # Log the server startup
     app.run(debug=True, port=5000)

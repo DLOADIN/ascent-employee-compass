@@ -36,7 +36,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const teamLeaderLinks = [
     { icon: Home, label: "Dashboard", to: "/team-leader" },
     { icon: FileText, label: "Tasks", to: "/team-leader/tasks" },
-    { icon: BookOpen, label: "Courses", to: "/team-leader/courses" },
+    { icon: Users, label: "Employees", to: "/team-leader/employees" },
     // { icon: Mail, label: "Email", to: "/team-leader/email" },
     { icon: Settings, label: "Settings", to: "/team-leader/settings" }
   ];

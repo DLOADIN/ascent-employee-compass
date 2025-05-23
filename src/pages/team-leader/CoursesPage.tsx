@@ -1,28 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  LinearProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Tooltip,
-  Chip,
-} from '@mui/material';
-import { Close as CloseIcon, PlayArrow as PlayIcon, AccessTime, CalendarToday } from '@mui/icons-material';
-import { useAppContext } from '@/context/AppContext';
-import { Course } from '@/types';
-import { courseTutorials } from '@/data/courseTutorials';
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/components/ui/use-toast";
+import { API_URL } from '@/lib/constants';
+
+interface DepartmentEmployee {
+  id: number;
+  name: string;
+  email: string;
+  phone_number: string;
+  skill_level: string;
+  experience: number;
+  experience_level: number;
+  description: string;
+  profile_image_url: string | null;
+  is_active: boolean;
+  created_at: string;
+}
 
 interface TeamMemberProgress {
   userId: number;
@@ -39,33 +33,77 @@ interface TeamMemberProgress {
 }
 
 const TeamLeaderCoursesPage: React.FC = () => {
-  const { currentUser } = useAppContext();
+  const [employees, setEmployees] = useState<DepartmentEmployee[]>([]);
   const [teamProgress, setTeamProgress] = useState<TeamMemberProgress[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [isVideoOpen, setIsVideoOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    fetchTeamProgress();
-  }, []);
+  const fetchDepartmentEmployees = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
+
+      const response = await fetch(`${API_URL}/team-leader/department-employees`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch department employees');
+      }
+
+      const data = await response.json();
+      setEmployees(data);
+    } catch (error) {
+      console.error('Error fetching department employees:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load department employees",
+        variant: "destructive"
+      });
+    }
+  };
 
   const fetchTeamProgress = async () => {
     try {
-      const response = await fetch('/api/team-leader/course-progress', {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found');
+
+      const response = await fetch(`${API_URL}/team-leader/course-progress`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
-      if (response.ok) {
-        const data = await response.json();
-        setTeamProgress(data);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch team progress');
       }
+
+      const data = await response.json();
+      setTeamProgress(data);
     } catch (error) {
       console.error('Error fetching team progress:', error);
-    } finally {
-      setLoading(false);
+      toast({
+        title: "Error",
+        description: "Failed to load team progress",
+        variant: "destructive"
+      });
     }
   };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchDepartmentEmployees(),
+        fetchTeamProgress()
+      ]);
+      setLoading(false);
+    };
+
+    fetchData();
+  }, []);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -74,9 +112,9 @@ const TeamLeaderCoursesPage: React.FC = () => {
   };
 
   const getProgressColor = (progress: number) => {
-    if (progress >= 80) return 'success';
-    if (progress >= 40) return 'warning';
-    return 'error';
+    if (progress >= 80) return 'bg-green-500';
+    if (progress >= 50) return 'bg-yellow-500';
+    return 'bg-red-500';
   };
 
   const getEngagementLevel = (daysWatched: number, totalWatchTime: number) => {
@@ -85,139 +123,71 @@ const TeamLeaderCoursesPage: React.FC = () => {
     return 'Low';
   };
 
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Team Learning Progress
-      </Typography>
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Department Employees & Course Progress</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {employees.map((employee) => {
+          const employeeProgress = teamProgress.find(p => p.userId === employee.id);
+          
+          return (
+            <Card key={employee.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>{employee.name}</span>
+                  <span className={`text-sm px-2 py-1 rounded ${
+                    employee.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {employee.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-600">{employee.email}</p>
+                    <p className="text-sm text-gray-600">{employee.phone_number}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm font-medium">Skill Level: {employee.skill_level}</p>
+                    <p className="text-sm font-medium">Experience: {employee.experience} years</p>
+                  </div>
 
-      {loading ? (
-        <LinearProgress />
-      ) : teamProgress.length === 0 ? (
-        <Typography>No team members found.</Typography>
-      ) : (
-        teamProgress.map((member) => (
-          <Card key={member.userId} sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                {member.userName}
-              </Typography>
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Course</TableCell>
-                      <TableCell>Progress</TableCell>
-                      <TableCell>Last Accessed</TableCell>
-                      <TableCell>Watch Time</TableCell>
-                      <TableCell>Days Watched</TableCell>
-                      <TableCell>Engagement</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {member.courses.map((course) => {
-                      const engagementLevel = getEngagementLevel(course.daysWatched, course.totalWatchTime);
-                      return (
-                        <TableRow key={course.courseId}>
-                          <TableCell>{course.courseTitle}</TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <LinearProgress
-                                variant="determinate"
-                                value={course.progress}
-                                color={getProgressColor(course.progress) as any}
-                                sx={{ width: '100px' }}
-                              />
-                              <Typography variant="body2">{course.progress}%</Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            {course.lastAccessed ? (
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <CalendarToday fontSize="small" />
-                                {new Date(course.lastAccessed).toLocaleDateString()}
-                              </Box>
-                            ) : (
-                              'Never'
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <AccessTime fontSize="small" />
-                              {formatDuration(course.totalWatchTime)}
-                            </Box>
-                          </TableCell>
-                          <TableCell>{course.daysWatched} days</TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={engagementLevel}
-                              color={
-                                engagementLevel === 'High' ? 'success' :
-                                engagementLevel === 'Medium' ? 'warning' : 'error'
-                              }
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Tooltip title="View Course">
-                              <IconButton
-                                size="small"
-                                onClick={() => {
-                                  const tutorial = courseTutorials.find(
-                                    (t) => t.id === course.courseId
-                                  );
-                                  if (tutorial) {
-                                    setSelectedCourse(tutorial);
-                                    setIsVideoOpen(true);
-                                  }
-                                }}
-                              >
-                                <PlayIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        ))
-      )}
-
-      <Dialog
-        open={isVideoOpen}
-        onClose={() => setIsVideoOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {selectedCourse?.title}
-          <IconButton
-            onClick={() => setIsVideoOpen(false)}
-            sx={{ position: 'absolute', right: 8, top: 8 }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          {selectedCourse && (
-            <iframe
-              width="100%"
-              height="500"
-              src={selectedCourse.videoUrl}
-              title={selectedCourse.title}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-    </Box>
+                  {employeeProgress && (
+                    <div className="space-y-2">
+                      <h3 className="font-medium">Course Progress</h3>
+                      {employeeProgress.courses.map((course) => (
+                        <div key={course.courseId} className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span>{course.courseTitle}</span>
+                            <span>{course.progress}%</span>
+                          </div>
+                          <Progress 
+                            value={course.progress} 
+                            className={`h-2 ${getProgressColor(course.progress)}`}
+                          />
+                          <div className="text-xs text-gray-500">
+                            <p>Watch Time: {formatDuration(course.totalWatchTime)}</p>
+                            <p>Days Watched: {course.daysWatched}</p>
+                            <p>Engagement: {getEngagementLevel(course.daysWatched, course.totalWatchTime)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 
