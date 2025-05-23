@@ -25,8 +25,8 @@ export default function CoursesPage() {
       const progress = Math.round((position / duration) * 100);
       setVideoProgress(prev => ({ ...prev, [courseId]: progress }));
 
-      // Update progress in database
-      await fetch('/api/courses/progress', {
+      // Update watch history and progress
+      await fetch('/api/courses/watch-history', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,9 +34,10 @@ export default function CoursesPage() {
         },
         body: JSON.stringify({
           courseId,
+          watchDuration: 1, // Increment by 1 second
+          watchPosition: position,
           progress,
-          position,
-          duration
+          completedSegments: []
         })
       });
     } catch (error) {
@@ -47,7 +48,8 @@ export default function CoursesPage() {
   // Handle video interactions
   const handleVideoInteraction = async (courseId: string, type: 'play' | 'pause' | 'seek', position: number) => {
     try {
-      await fetch('/api/courses/interactions', {
+      // Update watch history with interaction
+      await fetch('/api/courses/watch-history', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -55,8 +57,9 @@ export default function CoursesPage() {
         },
         body: JSON.stringify({
           courseId,
-          type,
-          position
+          watchDuration: type === 'play' ? 1 : 0,
+          watchPosition: position,
+          interactionType: type
         })
       });
     } catch (error) {
@@ -84,6 +87,34 @@ export default function CoursesPage() {
       console.error('Error completing course:', error);
     }
   };
+
+  // Load watch history when a course is selected
+  useEffect(() => {
+    if (selectedCourse) {
+      fetch(`/api/courses/watch-history/${selectedCourse.id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      .then(res => res.json())
+      .then(history => {
+        if (history.length > 0) {
+          const lastWatch = history[0];
+          // Set initial position if exists
+          if (lastWatch.watch_position) {
+            videoRef.current?.contentWindow?.postMessage(
+              JSON.stringify({
+                event: 'seekTo',
+                seconds: lastWatch.watch_position
+              }),
+              '*'
+            );
+          }
+        }
+      })
+      .catch(error => console.error('Error loading watch history:', error));
+    }
+  }, [selectedCourse]);
 
   // Message handler for YouTube iframe
   useEffect(() => {
@@ -207,10 +238,10 @@ export default function CoursesPage() {
                         <img
                           src={tutorial.thumbnailUrl}
                           alt={tutorial.title}
-                          className="object-cover w-full h-full"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
                           <Youtube className="h-12 w-12 text-muted-foreground" />
                         </div>
                       )}
@@ -254,10 +285,10 @@ export default function CoursesPage() {
                           </DialogContent>
                         </Dialog>
                       </div>
-                    </div>
-                    <CardHeader className="pb-2">
+                  </div>
+                  <CardHeader className="pb-2">
                       <CardTitle className="text-xl">{tutorial.title}</CardTitle>
-                      <CardDescription>
+                    <CardDescription>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="secondary">{tutorial.difficulty}</Badge>
                           <span className="text-sm text-muted-foreground">{tutorial.duration}</span>
@@ -273,22 +304,22 @@ export default function CoursesPage() {
                             <Progress value={progress} className="h-2 mt-2" />
                           </div>
                         )}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                      <p className="text-sm text-muted-foreground">
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-1">
+                    <p className="text-sm text-muted-foreground">
                         {tutorial.description}
-                      </p>
-                    </CardContent>
-                    <CardFooter className="pt-0">
+                    </p>
+                  </CardContent>
+                  <CardFooter className="pt-0">
                       <Button 
                         className="w-full" 
                         onClick={() => handleEnroll(tutorial.id)}
                       >
                         {isEnrolled ? 'Continue Learning' : 'Enroll Now'}
-                      </Button>
-                    </CardFooter>
-                  </Card>
+                    </Button>
+                  </CardFooter>
+                </Card>
                 );
               })}
             </div>

@@ -8,6 +8,7 @@ import os
 import logging
 from functools import wraps
 from dotenv import load_dotenv
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -646,6 +647,9 @@ def get_login_sessions(current_user_id):
     finally:
         cursor.close()
         conn.close()
+
+
+
 
 @app.route('/api/admin/dashboard-stats', methods=['GET'])
 @token_required
@@ -1770,6 +1774,180 @@ def get_employee_dashboard(current_user_id):
         return jsonify(dashboard_data)
     except Exception as e:
         logger.error(f"Error fetching employee dashboard: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/courses/watch-history', methods=['POST'])
+@token_required
+def update_watch_history(current_user_id):
+    """Update course watch history and progress"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        data = request.get_json()
+        course_id = data.get('courseId')
+        watch_duration = data.get('watchDuration')
+        watch_position = data.get('watchPosition')
+        completed_segments = data.get('completedSegments', [])
+        
+        if not all([course_id, watch_duration, watch_position]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        # Update or insert watch history
+        cursor.execute('''
+            INSERT INTO course_watch_history 
+            (user_id, course_id, watch_date, watch_duration, watch_position, completed_segments)
+            VALUES (%s, %s, CURDATE(), %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+            watch_duration = watch_duration + %s,
+            watch_position = %s,
+            completed_segments = %s
+        ''', (
+            current_user_id,
+            course_id,
+            watch_duration,
+            watch_position,
+            json.dumps(completed_segments),
+            watch_duration,
+            watch_position,
+            json.dumps(completed_segments)
+        ))
+
+        # Update course enrollment progress
+        cursor.execute('''
+            UPDATE course_enrollments 
+            SET progress = %s,
+                last_accessed_at = CURRENT_TIMESTAMP,
+                last_watch_position = %s
+            WHERE user_id = %s AND course_id = %s
+        ''', (
+            data.get('progress', 0),
+            watch_position,
+            current_user_id,
+            course_id
+        ))
+
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Watch history updated successfully'
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating watch history: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/courses/watch-history/<int:course_id>', methods=['GET'])
+@token_required
+def get_watch_history(current_user_id, course_id):
+    """Get watch history for a specific course"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute('''
+            SELECT 
+                watch_date,
+                watch_duration,
+                watch_position,
+                completed_segments
+            FROM course_watch_history
+            WHERE user_id = %s AND course_id = %s
+            ORDER BY watch_date DESC
+        ''', (current_user_id, course_id))
+        
+        history = cursor.fetchall()
+        
+        # Convert JSON strings to objects
+        for record in history:
+            if record['completed_segments']:
+                record['completed_segments'] = json.loads(record['completed_segments'])
+        
+        return jsonify(history)
+
+    except Exception as e:
+        logger.error(f"Error fetching watch history: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/team-leader/course-progress', methods=['GET'])
+@token_required
+def get_team_course_progress(current_user_id):
+    """Get course progress for all team members"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verify user is a team leader and get their department
+        cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        
+        if not user or user['role'] != 'TeamLeader':
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        # Get all team members' course progress
+        cursor.execute('''
+            SELECT 
+                u.id as user_id,
+                u.name as user_name,
+                c.id as course_id,
+                c.title as course_title,
+                c.department,
+                ce.progress,
+                ce.last_accessed_at,
+                ce.last_watch_position,
+                (
+                    SELECT SUM(watch_duration)
+                    FROM course_watch_history
+                    WHERE user_id = u.id AND course_id = c.id
+                ) as total_watch_time,
+                (
+                    SELECT COUNT(DISTINCT watch_date)
+                    FROM course_watch_history
+                    WHERE user_id = u.id AND course_id = c.id
+                ) as days_watched
+            FROM users u
+            JOIN course_enrollments ce ON u.id = ce.user_id
+            JOIN courses c ON ce.course_id = c.id
+            WHERE u.department = %s AND u.role = 'Employee'
+            ORDER BY u.name, c.title
+        ''', (user['department'],))
+        
+        progress_data = cursor.fetchall()
+        
+        # Group progress by user
+        user_progress = {}
+        for record in progress_data:
+            if record['user_id'] not in user_progress:
+                user_progress[record['user_id']] = {
+                    'userId': record['user_id'],
+                    'userName': record['user_name'],
+                    'courses': []
+                }
+            
+            user_progress[record['user_id']]['courses'].append({
+                'courseId': record['course_id'],
+                'courseTitle': record['course_title'],
+                'progress': record['progress'],
+                'lastAccessed': record['last_accessed_at'].isoformat() if record['last_accessed_at'] else None,
+                'lastWatchPosition': record['last_watch_position'],
+                'totalWatchTime': record['total_watch_time'] or 0,
+                'daysWatched': record['days_watched'] or 0
+            })
+        
+        return jsonify(list(user_progress.values()))
+
+    except Exception as e:
+        logger.error(f"Error fetching team course progress: {str(e)}")
         return jsonify({'error': 'Server error'}), 500
     finally:
         cursor.close()

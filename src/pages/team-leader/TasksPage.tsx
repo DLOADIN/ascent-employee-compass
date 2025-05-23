@@ -54,7 +54,16 @@ export default function TeamLeaderTasksPage() {
       }
 
       const response = await tasksResponse.json();
-      setTeamTasks(response.tasks || []);
+      // Filter tasks to only show those from the team leader's department
+      const departmentTasks = response.tasks.filter((task: Task) => {
+        // For Customer Service team leaders, show tasks from both Customer Service and Finance
+        if (currentUser?.department === 'Customer-Service') {
+          return ['Customer-Service'].includes(task.assigned_to_department);
+        }
+        // For other team leaders, only show tasks from their department
+        return task.assigned_to_department === currentUser?.department;
+      });
+      setTeamTasks(departmentTasks || []);
     } catch (error) {
       console.error('Error fetching tasks:', error);
       toast({
