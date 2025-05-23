@@ -21,7 +21,7 @@ import SettingsPage from "./pages/admin/SettingsPage";
 // Team Leader pages
 import TeamLeaderDashboard from "./pages/team-leader/TeamLeaderDashboard";
 import TeamLeaderTasksPage from "./pages/team-leader/TasksPage";
-import TeamLeaderCoursesPage from "./pages/team-leader/CoursesPage";
+import TeamLeaderEmployeePage from "./pages/team-leader/Employees";
 import TeamLeaderSettingsPage from "./pages/team-leader/SettingsPage";
 
 // Employee pages
@@ -60,7 +60,7 @@ const App = () => (
               <Route path="/team-leader" element={<MainLayout />}>
                 <Route index element={<TeamLeaderDashboard />} />
                 <Route path="tasks" element={<TeamLeaderTasksPage />} />
-                <Route path="courses" element={<TeamLeaderCoursesPage />} />
+                <Route path="employees" element={<TeamLeaderEmployeePage />} />
                 <Route path="settings" element={<TeamLeaderSettingsPage />} />
                 <Route path="email" element={<TeamLeaderEmailPage />} />
               </Route>
