@@ -2012,51 +2012,43 @@ def validate_token(current_user_id):
         cursor = conn.cursor(dictionary=True)
         
         # Check if user exists and is active
-        cursor.execute('SELECT * FROM users WHERE id = %s AND is_active = 1', (current_user_id,))
+        cursor.execute('SELECT id, is_active, role, email FROM users WHERE id = %s', (current_user_id,))
         user = cursor.fetchone()
         
         if not user:
-            return jsonify({'message': 'User not found or inactive'}), 401
+            logger.error(f"Token validation failed: User not found for ID {current_user_id}")
+            return jsonify({
+                'message': 'User not found',
+                'error': 'USER_NOT_FOUND',
+                'details': f'No user found with ID {current_user_id}'
+            }), 401
             
-        return jsonify({'valid': True}), 200
-        
-    except Exception as e:
-        logger.error(f"Token validation error: {str(e)}")
-        return jsonify({'message': 'Error validating token'}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-@app.route('/api/auth/refresh', methods=['POST'])
-@token_required
-def refresh_token(current_user_id):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        # Check if user exists and is active
-        cursor.execute('SELECT * FROM users WHERE id = %s AND is_active = 1', (current_user_id,))
-        user = cursor.fetchone()
-        
-        if not user:
-            return jsonify({'message': 'User not found or inactive'}), 401
+        if not user['is_active']:
+            logger.error(f"Token validation failed: User {user['email']} is inactive")
+            return jsonify({
+                'message': 'User account is inactive',
+                'error': 'USER_INACTIVE',
+                'details': f'User {user["email"]} has been deactivated'
+            }), 401
             
-        # Generate new token
-        new_token = jwt.encode({
-            'user_id': user['id'],
-            'email': user['email'],
-            'role': user['role'],
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1)
-        }, app.config['JWT_SECRET_KEY'], algorithm='HS256')
-        
+        logger.info(f"Token validation successful for user {user['email']} with role {user['role']}")
         return jsonify({
-            'token': new_token,
-            'message': 'Token refreshed successfully'
+            'message': 'Token is valid',
+            'user': {
+                'id': user['id'],
+                'email': user['email'],
+                'role': user['role'],
+                'isActive': bool(user['is_active'])
+            }
         }), 200
         
     except Exception as e:
-        logger.error(f"Token refresh error: {str(e)}")
-        return jsonify({'message': 'Error refreshing token'}), 500
+        logger.error(f"Token validation error: {str(e)}")
+        return jsonify({
+            'message': 'Error validating token',
+            'error': 'VALIDATION_ERROR',
+            'details': str(e)
+        }), 500
     finally:
         cursor.close()
         conn.close()

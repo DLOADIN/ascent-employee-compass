@@ -5,11 +5,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { login as authLogin, transformUserData } from '@/services/auth';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
-
 interface AppContextType {
   currentUser: User | null;
   token: string | null;
+  isLoading: boolean;
   users: User[];
   tasks: Task[];
   courses: Course[];
@@ -38,8 +37,12 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { toast } = useToast();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<User[]>(mockUsers);
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
   const [courses, setCourses] = useState<Course[]>(mockCourses);
@@ -48,61 +51,87 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [loginSessions, setLoginSessions] = useState<LoginSession[]>(mockLoginSessions);
 
-  // Check for existing auth on mount
+  // Check for existing auth on mount and validate token
   useEffect(() => {
-    const validateAndRestoreAuth = async () => {
-      const token = localStorage.getItem('token');
-      const savedUser = localStorage.getItem('user');
+    const validateToken = async () => {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
       
-      if (token && savedUser) {
-        try {
-          // Validate token with backend
-          const response = await axios.get(`${API_URL}/auth/validate`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
+      if (!storedToken || !storedUser) {
+        console.log('No stored token or user found');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        console.log('Validating token with backend...');
+        // Validate token with backend
+        const response = await axios.get('http://localhost:5000/api/auth/validate', {
+          headers: { Authorization: `Bearer ${storedToken}` }
+        });
+
+        if (response.status === 200) {
+          console.log('Token validation successful');
+          const user = JSON.parse(storedUser);
+          setCurrentUser(user);
+          setToken(storedToken);
           
-          if (response.status === 200) {
-            const user = JSON.parse(savedUser);
-            setCurrentUser(user);
-            setToken(token);
-            
-            // Add a new login session if one doesn't exist
-            const existingSession = loginSessions.find(
-              session => session.userId === user.id && session.isActive
-            );
-            
-            if (!existingSession) {
-              const newSession: LoginSession = {
-                id: Date.now().toString(),
-                userId: user.id,
-                userAgent: navigator.userAgent,
-                ipAddress: "127.0.0.1",
-                loginTime: new Date(),
-                isActive: true
-              };
-              setLoginSessions([...loginSessions, newSession]);
-            }
-          } else {
-            // Token is invalid, clear auth data
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setCurrentUser(null);
-            setToken(null);
+          // Update user data from backend response if available
+          if (response.data.user) {
+            const updatedUser = {
+              ...user,
+              ...response.data.user
+            };
+            setCurrentUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
           }
-        } catch (error) {
-          console.error('Error validating authentication state:', error);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setCurrentUser(null);
-          setToken(null);
+        } else {
+          console.error('Token validation failed:', response.data);
+          handleLogout();
         }
+      } catch (error: any) {
+        console.error('Token validation error:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        handleLogout();
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    validateAndRestoreAuth();
+    validateToken();
   }, []);
+
+  // Add axios interceptor for better error handling
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      response => response,
+      error => {
+        if (error.response?.status === 401) {
+          console.error('Authentication error:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+          });
+          handleLogout();
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setCurrentUser(null);
+    setToken(null);
+  };
 
   // Fetch notifications from backend
   const fetchNotifications = async () => {
@@ -138,27 +167,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [token]);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; redirect?: string }> => {
+  const login = async (email: string, password: string) => {
     try {
       const response = await authLogin(email, password);
       const transformedUser = transformUserData(response.user);
       
       // Store auth data
       localStorage.setItem('token', response.token);
-      setToken(response.token);
+      localStorage.setItem('user', JSON.stringify(transformedUser));
       
       setCurrentUser(transformedUser);
-      
-      // Add a new login session
-      const newSession: LoginSession = {
-        id: Date.now().toString(),
-        userId: transformedUser.id,
-        userAgent: navigator.userAgent,
-        ipAddress: "127.0.0.1",
-        loginTime: new Date(),
-        isActive: true
-      };
-      setLoginSessions([...loginSessions, newSession]);
+      setToken(response.token);
       
       toast({
         title: "Login successful",
@@ -167,11 +186,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       return { success: true, redirect: response.redirect };
     } catch (error) {
-    toast({
-      title: "Login failed",
-      description: "Invalid email or password",
-      variant: "destructive",
-    });
+      toast({
+        title: "Login failed",
+        description: "Invalid email or password",
+        variant: "destructive",
+      });
       return { success: false };
     }
   };
@@ -185,11 +204,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return session;
       });
       setLoginSessions(updatedSessions);
-      setCurrentUser(null);
-      
-      // Clear auth data
-      localStorage.removeItem('token');
-      setToken(null);
+      handleLogout();
       
       toast({
         title: "Logged out",
@@ -358,6 +373,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const value = {
     currentUser,
     token,
+    isLoading,
     users,
     tasks,
     courses,
