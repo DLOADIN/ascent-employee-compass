@@ -144,11 +144,77 @@ export default function LoginPage() {
         
         <div className="text-center text-sm text-muted-foreground mt-4">
           <p>Demo Accounts:</p>
-          <ul className="mt-2 space-y-1">
-            <li>Admin: admin@gmail.com / TestPassword123!</li>
-            <li>Team Leader: teamlead.finance@hrms.com / TestPassword123!</li>
-            <li>Employee: employee.finance@hrms.com / TestPassword123!</li>
-          </ul>
+          <div className="mt-2 space-y-4">
+            {/* Admin Section */}
+            <div>
+              <h3 className="font-bold text-base mb-1">Administrator</h3>
+              <ul className="space-y-1">
+                <li>John Payton (admin@gmail.com / TestPassword123!)</li>
+              </ul>
+            </div>
+
+            {/* Team Leaders Section */}
+            <div>
+              <h3 className="font-bold text-base mb-1">Team Leaders</h3>
+              <div className="space-y-2">
+                <div>
+                  <h4 className="font-semibold">IT Department</h4>
+                  <ul className="space-y-1">
+                    <li>Jill Wagner Joe (jillwagner@gmail.com / TestPassword123!)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Finance Department</h4>
+                  <ul className="space-y-1">
+                    <li>Fina Nicer (teamlead.finance@hrms.com / TestPassword123!)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Sales Department</h4>
+                  <ul className="space-y-1">
+                    <li>Team Leader Sales (teamlead.sales@hrms.com / TestPassword123!)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Customer Service Department</h4>
+                  <ul className="space-y-1">
+                    <li>Team Leader Customer-Service (teamlead.customerservice@hrms.com / TestPassword123!)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Employees Section */}
+            <div>
+              <h3 className="font-bold text-base mb-1">Employees</h3>
+              <div className="space-y-2">
+                <div>
+                  <h4 className="font-semibold">IT Department</h4>
+                  <ul className="space-y-1">
+                    <li>Brian Joe (brian@gmal.com / TestPassword123!)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Finance Department</h4>
+                  <ul className="space-y-1">
+                    <li>Jerry Jane (employee.finance@hrms.com / TestPassword123!)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Sales Department</h4>
+                  <ul className="space-y-1">
+                    <li>Sales Employee (employee.sales@hrms.com / TestPassword123!)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Customer Service Department</h4>
+                  <ul className="space-y-1">
+                    <li>Gary Jerry (employee.customerservice@hrms.com / TestPassword123!)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -139,7 +139,7 @@ export default function EmployeeDashboard() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Department Progress</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Task Progress</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{dashboardData.department_stats.progress.tasks}%</div>
@@ -186,7 +186,7 @@ export default function EmployeeDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Department Progress</CardTitle>
+            <CardTitle>Task Progress</CardTitle>
             <CardDescription>Overall department performance</CardDescription>
           </CardHeader>
           <CardContent>
