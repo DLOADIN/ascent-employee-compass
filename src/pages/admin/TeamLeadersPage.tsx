@@ -17,7 +17,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { UserPlus, Search, Edit, Trash2 } from "lucide-react";
+import { UserPlus, Search, Edit, Trash2, ArrowDown } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { Department, User, UserRole } from "@/types";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
@@ -200,6 +200,50 @@ const TeamLeadersPage = () => {
     setIsDetailsDialogOpen(true);
   };
 
+  const handleDemoteTeamLeader = async (user: User) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Format the data to match backend expectations
+      const formattedData = {
+        name: user.name,
+        email: user.email,
+        role: 'Employee',
+        department: user.department || null,
+        phone_number: user.phoneNumber || null,
+        skill_level: user.skillLevel || null,
+        experience: user.experience || null,
+        description: user.description || null,
+        is_active: true
+      };
+
+      const { data } = await axios.put<any>(
+        `http://localhost:5000/api/users/${user.id}`,
+        formattedData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Remove the demoted user from the team leaders list
+      setTeamLeaders(prev => prev.filter(tl => tl.id !== user.id));
+      
+      toast({
+        title: "Success",
+        description: `${user.name} has been demoted to Employee`,
+        variant: "default"
+      });
+      
+      // Refresh the data to ensure we have the latest state
+      await fetchTeamLeaders();
+    } catch (error: any) {
+      console.error('Demotion error:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to demote team leader",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Filter team leaders
   const filteredTeamLeaders = teamLeaders.filter((user) => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -289,6 +333,18 @@ const TeamLeadersPage = () => {
                           <Button
                             variant="outline"
                             size="icon"
+                            className="text-red-700 hover:text-red-700 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDemoteTeamLeader(user);
+                            }}
+                            title="Demote to Employee"
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedUser(user);
@@ -297,17 +353,6 @@ const TeamLeadersPage = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          {/* <Button
-                            variant="outline"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteTeamLeader(user);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button> */}
                         </div>
                       </TableCell>
                     </TableRow>
