@@ -73,7 +73,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (response.status === 200) {
           console.log('Token validation successful');
           const user = JSON.parse(storedUser);
-          setCurrentUser(user);
+      setCurrentUser(user);
           setToken(storedToken);
           
           // Update user data from backend response if available
@@ -186,11 +186,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       return { success: true, redirect: response.redirect };
     } catch (error) {
-      toast({
-        title: "Login failed",
-        description: "Invalid email or password",
-        variant: "destructive",
-      });
+    toast({
+      title: "Login failed",
+      description: "Invalid email or password",
+      variant: "destructive",
+    });
       return { success: false };
     }
   };

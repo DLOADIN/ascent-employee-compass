@@ -12,9 +12,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   const location = useLocation();
   
   useEffect(() => {
-    // Store current path in localStorage when user accesses a protected route
-    if (currentUser) {
-      localStorage.setItem('lastVisitedPath', location.pathname);
+  // Store current path in localStorage when user accesses a protected route
+  if (currentUser) {
+    localStorage.setItem('lastVisitedPath', location.pathname);
     }
   }, [currentUser, location.pathname]);
 

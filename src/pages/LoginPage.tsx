@@ -143,18 +143,18 @@ export default function LoginPage() {
         </div>
         
         <div className="text-center text-sm text-muted-foreground mt-4">
-          <p>Demo Accounts:</p>
+          {/* <p>Demo Accounts:</p> */}
           <div className="mt-2 space-y-4">
             {/* Admin Section */}
-            <div>
+            {/* <div>
               <h3 className="font-bold text-base mb-1">Administrator</h3>
               <ul className="space-y-1">
                 <li>John Payton (admin@gmail.com / TestPassword123!)</li>
               </ul>
-            </div>
+            </div> */}
 
             {/* Team Leaders Section */}
-            <div>
+            {/* <div>
               <h3 className="font-bold text-base mb-1">Team Leaders</h3>
               <div className="space-y-2">
                 <div>
@@ -182,10 +182,10 @@ export default function LoginPage() {
                   </ul>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Employees Section */}
-            <div>
+            {/* <div>
               <h3 className="font-bold text-base mb-1">Employees</h3>
               <div className="space-y-2">
                 <div>
@@ -213,9 +213,10 @@ export default function LoginPage() {
                   </ul>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
+        
       </div>
     </div>
   );
