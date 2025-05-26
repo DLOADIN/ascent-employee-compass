@@ -427,8 +427,11 @@ export default function TeamLeaderTasksPage() {
                     {teamMembers.map(member => {
                       const memberTasks = teamTasks.filter(task => task.assignedTo === member.id);
                       const completedCount = memberTasks.filter(task => task.status === "Completed").length;
+                      
+                      // Calculate total progress across all tasks
+                      const totalProgress = memberTasks.reduce((sum, task) => sum + (task.progress || 0), 0);
                       const progressPercentage = memberTasks.length > 0 
-                        ? Math.round((completedCount / memberTasks.length) * 100) 
+                        ? Math.round(totalProgress / memberTasks.length) 
                         : 0;
                       
                       return (
