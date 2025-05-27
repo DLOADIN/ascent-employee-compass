@@ -321,8 +321,9 @@ const EmployeesPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center">
         <h2 className="text-3xl font-bold">Employees Management</h2>
+        <div className="pl-[340px]">
         <Button onClick={() => setIsAddDialogOpen(true)} className="sm:w-auto w-full">
           <UserPlus className="mr-2 h-4 w-4" />
           Add Employee
@@ -352,6 +353,7 @@ const EmployeesPage = () => {
         >
           Print Employees PDF
         </Button>
+        </div>
       </div>
 
       <Card>
