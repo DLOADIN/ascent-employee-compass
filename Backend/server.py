@@ -2273,6 +2273,67 @@ def export_employees_pdf(current_user_id):
         cursor.close()
         conn.close()
 
+@app.route('/api/admin/export-team-leaders-pdf', methods=['GET'])
+@token_required
+def export_team_leaders_pdf(current_user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Check if user is admin
+        cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        if not user or user['role'] != 'Admin':
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        # Get all team leaders
+        cursor.execute('''
+            SELECT name, email, phone_number, department, role, skill_level
+            FROM users
+            WHERE role = 'TeamLeader'
+            ORDER BY department, name
+        ''')
+        leaders = cursor.fetchall()
+
+        # Create PDF
+        pdf = FPDF(orientation='L', unit='mm', format='A4')
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.cell(0, 10, txt="Team Leaders Listing", ln=True, align='C')
+        pdf.ln(5)
+        pdf.set_font("Arial", size=10)
+        # Table header
+        col_widths = [45, 60, 35, 35, 25, 35]  # Adjusted to fit A4 landscape
+        headers = ["Name", "Email", "Phone Number", "Department", "Role", "Skill Level"]
+        for i, header in enumerate(headers):
+            pdf.cell(col_widths[i], 10, header, 1, 0, 'C')
+        pdf.ln()
+        # Table rows
+        for leader in leaders:
+            pdf.cell(col_widths[0], 8, str(leader['name'])[:30], 1, 0, 'L')
+            pdf.cell(col_widths[1], 8, str(leader['email'])[:40], 1, 0, 'L')
+            pdf.cell(col_widths[2], 8, str(leader['phone_number'] or ''), 1, 0, 'L')
+            pdf.cell(col_widths[3], 8, str(leader['department'] or ''), 1, 0, 'L')
+            pdf.cell(col_widths[4], 8, str(leader['role']), 1, 0, 'L')
+            pdf.cell(col_widths[5], 8, str(leader['skill_level'] or ''), 1, 0, 'L')
+            pdf.ln()
+
+        # Output PDF to memory
+        try:
+            pdf_bytes = pdf.output(dest='S').encode('latin1')
+            pdf_output = io.BytesIO(pdf_bytes)
+            pdf_output.seek(0)
+            return send_file(pdf_output, as_attachment=True, download_name="team_leaders.pdf", mimetype='application/pdf')
+        except Exception as e:
+            import traceback
+            print('PDF generation error:', traceback.format_exc())
+            return jsonify({'error': 'PDF generation failed', 'details': str(e)}), 500
+    except Exception as e:
+        return jsonify({'error': 'Server error', 'details': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 if __name__ == '__main__':
     # Log the server startup
     app.run(debug=True, port=5000)

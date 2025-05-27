@@ -264,6 +264,31 @@ const TeamLeadersPage = () => {
           <UserPlus className="mr-2 h-4 w-4" />
           Add Team Leader
         </Button> */}
+        <Button
+  variant="outline"
+  className="sm:w-auto w-full ml-2"
+  onClick={async () => {
+    const token = localStorage.getItem('token');
+    const res = await fetch('http://localhost:5000/api/admin/export-team-leaders-pdf', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'team_leaders.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } else {
+      alert('Failed to download PDF');
+    }
+  }}
+>
+  Print Team Leaders PDF
+</Button>
       </div>
 
       <Card>
