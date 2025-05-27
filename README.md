@@ -58,7 +58,7 @@ Ascent Employee Compass is a comprehensive HR management platform designed to st
    ```bash
    npm run dev
    ```
-   The frontend will run on `http://localhost:3000` (or your configured port).
+   The frontend will run on `http://localhost:8080` (or your configured port).
 
 ## Main API Endpoints
 - **Authentication:**
@@ -95,8 +95,3 @@ Ascent Employee Compass is a comprehensive HR management platform designed to st
 - **Security:**
   - All sensitive endpoints require a valid JWT token in the `Authorization` header.
 
-## Contribution
-Pull requests are welcome! Please open an issue first to discuss major changes.
-
-## License
-[MIT](LICENSE)

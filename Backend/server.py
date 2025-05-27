@@ -12,6 +12,7 @@ import json
 from fpdf import FPDF
 import io
 import traceback
+from decimal import Decimal
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -1196,7 +1197,7 @@ def get_team_leader_dashboard(current_user_id):
             }
         }
 
-        return jsonify(dashboard_data)
+        return jsonify(convert_decimals(dashboard_data))
 
     except Exception as e:
         logger.error(f"Error fetching dashboard data: {str(e)}")
@@ -2333,6 +2334,21 @@ def export_team_leaders_pdf(current_user_id):
     finally:
         cursor.close()
         conn.close()
+
+def to_number(val):
+    if isinstance(val, Decimal):
+        return float(val)
+    return val
+
+def convert_decimals(obj):
+    if isinstance(obj, dict):
+        return {k: convert_decimals(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_decimals(i) for i in obj]
+    elif isinstance(obj, Decimal):
+        return float(obj)
+    else:
+        return obj
 
 if __name__ == '__main__':
     # Log the server startup
