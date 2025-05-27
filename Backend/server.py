@@ -5,6 +5,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import jwt
 import datetime
 import os
+import os
+from pathlib import Path
 import logging
 from functools import wraps
 from dotenv import load_dotenv
@@ -13,6 +15,7 @@ from fpdf import FPDF
 import io
 import traceback
 from decimal import Decimal
+from werkzeug.utils import secure_filename
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -46,6 +49,12 @@ db_config = {
 # JWT Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'x7k9p2m4q8v5n3j6h1t0r2y5u8w3z6b9')
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET', 'hr_management_jwt_secret_key_2024_secure')
+
+# Add this after your app initialization
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
 
 # Print JWT secret for reference
 # print("JWT Secret Key:", app.config['JWT_SECRET_KEY'])
@@ -1210,6 +1219,63 @@ def get_team_leader_dashboard(current_user_id):
 
 
 
+@app.route('/api/employee/course-demonstration', methods=['POST'])
+@token_required
+def submit_course_demonstration(current_user_id):
+    try:
+        data = request.form
+        course_name = data.get('course_name')
+        project_title = data.get('project_title')
+        project_description = data.get('project_description')
+
+        if not all([course_name, project_title, project_description]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
+        document_url = None
+        if 'document' in request.files and request.files['document'].filename != '':
+            document = request.files['document']
+            filename = secure_filename(document.filename)
+            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+            unique_filename = f"{timestamp}_{filename}"
+            filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
+            try:
+                document.save(filepath)
+                document_url = filepath
+            except Exception as e:
+                logger.error(f"Error saving file: {str(e)}")
+                return jsonify({'error': 'Error saving file'}), 500
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute('''
+                INSERT INTO employee_course_demonstrations 
+                (user_id, course_name, project_title, project_description, document_url)
+                VALUES (%s, %s, %s, %s, %s)
+            ''', (current_user_id, course_name, project_title, project_description, document_url))
+            conn.commit()
+        except Exception as e:
+            logger.error(f"Database error: {str(e)}")
+            # Clean up the file if database insert fails
+            if document_url and os.path.exists(document_url):
+                os.remove(document_url)
+            return jsonify({'error': 'Database error'}), 500
+        finally:
+            cursor.close()
+            conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Demonstration submitted successfully',
+            'document_url': document_url
+        })
+        
+    except Exception as e:
+        logger.error(f"Error submitting demonstration: {str(e)}")
+        return jsonify({'error': 'Server error', 'details': str(e)}), 500
+
+
+
 @app.route('/api/tasks', methods=['POST'])
 @token_required
 def create_task(current_user_id):
@@ -1887,6 +1953,15 @@ def get_watch_history(current_user_id, course_id):
         cursor.close()
         conn.close()
 
+
+
+
+
+
+
+
+
+
 @app.route('/api/team-leader/course-progress', methods=['GET'])
 @token_required
 def get_team_course_progress(current_user_id):
@@ -2350,6 +2425,7 @@ def convert_decimals(obj):
     else:
         return obj
 
+#
 if __name__ == '__main__':
     # Log the server startup
     app.run(debug=True, port=5000)

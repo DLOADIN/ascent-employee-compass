@@ -10,6 +10,12 @@ import { Play, BookOpen, BookOpenCheck, Clock, Youtube } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { courseTutorials, getTutorialsByDepartment } from "@/data/courseTutorials";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function CoursesPage() {
   const { currentUser, courses, enrollInCourse } = useAppContext();
@@ -18,6 +24,9 @@ export default function CoursesPage() {
   const [videoProgress, setVideoProgress] = useState<Record<string, number>>({});
   const videoRef = useRef<HTMLIFrameElement>(null);
   const { toast } = useToast();
+  const [demoError, setDemoError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [textOnly, setTextOnly] = useState(false);
 
   // Track video progress
   const trackVideoProgress = async (courseId: string, position: number, duration: number) => {
@@ -193,6 +202,56 @@ export default function CoursesPage() {
     }
   };
 
+  const handleDemonstrationSubmit = async (e) => {
+    e.preventDefault();
+    setDemoError("");
+    const form = e.target;
+    const course_name = form.course_name.value;
+    const project_title = form.project_title.value;
+    const project_description = form.project_description.value;
+    const wordCount = project_description.trim().split(/\s+/).length;
+    if (wordCount < 300) {
+      setDemoError("Project Description must be at least 300 words. Current: " + wordCount);
+      return;
+    }
+    setIsSubmitting(true);
+    const token = localStorage.getItem('token');
+    if (textOnly) {
+      // Text-only submission as FormData (no file)
+      const formData = new FormData();
+      formData.append('course_name', course_name);
+      formData.append('project_title', project_title);
+      formData.append('project_description', project_description);
+      const res = await fetch(`${API_URL}/api/employee/course-demonstration`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }, // Do NOT set Content-Type
+        body: formData
+      });
+      setIsSubmitting(false);
+      if (res.ok) {
+        toast({ title: "Submitted!", description: "Your demonstration was submitted." });
+        form.reset();
+      } else {
+        toast({ title: "Error", description: "Submission failed.", variant: "destructive" });
+      }
+    } else {
+      // With file
+      const formData = new FormData(form);
+      const res = await fetch(`${API_URL}/api/employee/course-demonstration`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }, // Do NOT set Content-Type
+        body: formData
+      });
+      setIsSubmitting(false);
+      if (res.ok) {
+        toast({ title: "Submitted!", description: "Your demonstration was submitted." });
+        form.reset();
+      } else {
+        toast({ title: "Error", description: "Submission failed.", variant: "destructive" });
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -327,16 +386,57 @@ export default function CoursesPage() {
         </TabsContent>
         
         <TabsContent value="enrolled" className="mt-6">
-          {enrolledCourses.length === 0 ? (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Submit Course Demonstration</CardTitle>
+              <CardDescription>
+                Submit your project and what you learned for any department course. (Project Description must be at least 300 words)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center mb-4 gap-2">
+                <Switch id="textOnlySwitch" checked={textOnly} onCheckedChange={setTextOnly} />
+                <Label htmlFor="textOnlySwitch">Submit as text only (no file)</Label>
+              </div>
+              <form
+                onSubmit={handleDemonstrationSubmit}
+                encType="multipart/form-data"
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium mb-1">Course Name</label>
+                  <Input name="course_name" placeholder="Enter course name" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Project Title</label>
+                  <Input name="project_title" placeholder="Enter project title" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">What did you learn / Project Description</label>
+                  <Textarea name="project_description" placeholder="Describe your project and what you learned (min 300 words)" required rows={8} />
+                  <span className="text-xs text-muted-foreground block mt-1">Minimum 300 words required.</span>
+                </div>
+                {!textOnly && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Upload Document</label>
+                    <Input type="file" name="document" required />
+                  </div>
+                )}
+                {demoError && <div className="text-red-600 text-sm font-medium">{demoError}</div>}
+                <Button type="submit" className="w-full mt-2" disabled={isSubmitting}>
+                  {isSubmitting ? "Submitting..." : "Submit Demonstration"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+          {/* {enrolledCourses.length === 0 ? (
             <Card>
               <CardContent className="pt-6 text-center py-10">
                 <BookOpen className="h-12 w-12 mx-auto text-muted-foreground" />
                 <p className="mt-4 text-muted-foreground">
                   You haven't enrolled in any courses yet.
                 </p>
-                <Button className="mt-4" onClick={() => setActiveTab("available")}>
-                  Browse All Courses
-                </Button>
+                <Button className="mt-4" onClick={() => setActiveTab("available")}>Browse All Courses</Button>
               </CardContent>
             </Card>
           ) : (
@@ -406,7 +506,7 @@ export default function CoursesPage() {
                         {course.description}
                       </p>
                     </CardContent>
-                    <CardFooter className="pt-0">
+                    <CardFooter className="pt-0 flex flex-col gap-2">
                       <Button 
                         variant="outline" 
                         className="w-full"
@@ -415,12 +515,36 @@ export default function CoursesPage() {
                         {progress === 100 ? "Review Course" : "Continue Learning"}
                         {progress < 100 && <Clock className="ml-2 h-4 w-4" />}
                       </Button>
+                      <form
+                        onSubmit={e => handleDemonstrationSubmit(e, course)}
+                        encType="multipart/form-data"
+                        className="mt-4 space-y-2"
+                      >
+                        <div>
+                          <label className="block text-sm font-medium">Course</label>
+                          <input type="text" value={course.title} readOnly className="w-full bg-gray-100 rounded px-2 py-1" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium">Project Title</label>
+                          <input type="text" name="project_title" required className="w-full border rounded px-2 py-1" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium">What did you learn / Project Description</label>
+                          <textarea name="project_description" required className="w-full border rounded px-2 py-1" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium">Upload Document</label>
+                          <input type="file" name="document" required className="w-full" />
+                        </div>
+                        <input type="hidden" name="course_id" value={course.id} />
+                        <Button type="submit" className="w-full mt-2">Submit Demonstration</Button>
+                      </form>
                     </CardFooter>
                   </Card>
                 );
               })}
             </div>
-          )}
+          )} */}
         </TabsContent>
       </Tabs>
     </div>
