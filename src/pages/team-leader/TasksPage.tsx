@@ -37,6 +37,7 @@ export default function TeamLeaderTasksPage() {
   const [teamMembers, setTeamMembers] = useState<User[]>([]);
   const [teamTasks, setTeamTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [membersProgress, setMembersProgress] = useState([]);
 
   const fetchTasks = async () => {
     try {
@@ -131,6 +132,19 @@ export default function TeamLeaderTasksPage() {
 
     fetchData();
   }, [currentUser, toast]);
+
+  useEffect(() => {
+    const fetchProgress = async () => {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/team-leader/department-members-progress', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setMembersProgress(await res.json());
+      }
+    };
+    fetchProgress();
+  }, []);
 
   if (!currentUser || !currentUser.department) return null;
 
@@ -421,40 +435,28 @@ export default function TeamLeaderTasksPage() {
                 </div>
               </div>
               <div className="pt-4 space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium">Team Members</h3>
-                  <div className="mt-2 space-y-2">
-                    {teamMembers.map(member => {
-                      const memberTasks = teamTasks.filter(task => task.assignedTo === member.id);
-                      const completedCount = memberTasks.filter(task => task.status === "Completed").length;
-                      
-                      // Calculate total progress across all tasks
-                      const totalProgress = memberTasks.reduce((sum, task) => sum + (task.progress || 0), 0);
-                      const progressPercentage = memberTasks.length > 0 
-                        ? Math.round(totalProgress / memberTasks.length) 
-                        : 0;
-                      
-                      return (
-                        <div key={member.id} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                              <span className="text-xs font-medium text-primary">
-                                {member.name.charAt(0)}
-                              </span>
-                            </div>
-                            <span className="text-sm">{member.name} ({member.department})</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-xs text-muted-foreground">
-                              {completedCount}/{memberTasks.length} tasks
-                            </span>
-                            <span className="text-xs font-medium">{progressPercentage}%</span>
-                          </div>
+              <div>
+                <h3 className="text-sm font-medium">Team Members Progress</h3>
+                <div className="mt-2 space-y-2">
+                  {teamMembers.map(member => (
+                    <div key={member.id} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-xs font-medium text-primary">
+                            {member.name.charAt(0)}
+                          </span>
                         </div>
-                      );
-                    })}
-                  </div>
+                        <span className="text-sm">{member.name} ({member.department})</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs font-medium">
+                          {(membersProgress.find((m: any) => String(m.id) === String(member.id))?.progress ?? 0)}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              </div>
               </div>
             </div>
           </CardContent>

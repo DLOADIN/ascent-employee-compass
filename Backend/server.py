@@ -2004,6 +2004,49 @@ def get_department_employees(current_user_id):
         cursor.close()
         conn.close()
 
+@app.route('/api/team-leader/department-members-progress', methods=['GET'])
+@token_required
+def get_department_members_progress(current_user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Get team leader's department
+        cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        if not user or user['role'] != 'TeamLeader':
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        department = user['department']
+
+        # Get all employees in the department
+        cursor.execute('SELECT id, name, email FROM users WHERE department = %s AND role = \"Employee\"', (department,))
+        employees = cursor.fetchall()
+
+        # For each employee, calculate average progress
+        results = []
+        for emp in employees:
+            cursor.execute('SELECT progress FROM tasks WHERE assigned_to = %s', (emp['id'],))
+            tasks = cursor.fetchall()
+            if tasks:
+                avg_progress = round(sum(t['progress'] or 0 for t in tasks) / len(tasks))
+            else:
+                avg_progress = 0
+            results.append({
+                'id': emp['id'],
+                'name': emp['name'],
+                'email': emp['email'],
+                'progress': avg_progress
+            })
+
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
 @app.route('/api/employee/progress', methods=['GET'])
 @token_required
 def get_employee_overall_progress(current_user_id):
@@ -2095,6 +2138,7 @@ def validate_token(current_user_id):
     finally:
         cursor.close()
         conn.close()
+
 
 if __name__ == '__main__':
     # Log the server startup
