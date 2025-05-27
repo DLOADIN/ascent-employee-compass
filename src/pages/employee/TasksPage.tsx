@@ -41,6 +41,13 @@ export default function TasksPage() {
     inProgress: 0,
     todo: 0
   });
+  const [employeeProgress, setEmployeeProgress] = useState<number>(0);
+  const [employeeTaskCounts, setEmployeeTaskCounts] = useState({
+    total: 0,
+    completed: 0,
+    in_progress: 0,
+    todo: 0
+  });
 
   useEffect(() => {
     const fetchUserTasks = async () => {
@@ -81,6 +88,40 @@ export default function TasksPage() {
 
     if (currentUser) {
       fetchUserTasks();
+    }
+  }, [currentUser, toast]);
+
+  useEffect(() => {
+    const fetchEmployeeProgress = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('No authentication token found');
+
+        const response = await fetch('http://localhost:5000/api/employee/progress', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch employee progress');
+        }
+
+        const data = await response.json();
+        setEmployeeProgress(data.overall_progress);
+        setEmployeeTaskCounts(data.task_counts);
+      } catch (error) {
+        console.error('Error fetching employee progress:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load employee progress",
+          variant: "destructive"
+        });
+      }
+    };
+
+    if (currentUser && currentUser.role === "Employee") {
+      fetchEmployeeProgress();
     }
   }, [currentUser, toast]);
 
@@ -186,22 +227,22 @@ export default function TasksPage() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Overall Progress</span>
-                <span className="text-sm font-medium">{overallProgress}%</span>
+                <span className="text-sm font-medium">{employeeProgress}%</span>
               </div>
-              <Progress value={overallProgress} className="h-2" />
+              <Progress value={employeeProgress} className="h-2" />
             </div>
 
             <div className="grid grid-cols-3 gap-4 pt-4">
               <div className="flex flex-col items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <span className="text-lg font-bold">{taskCounts.todo}</span>
+                <span className="text-lg font-bold">{employeeTaskCounts.todo}</span>
                 <span className="text-xs text-muted-foreground mt-1">To Do</span>
               </div>
               <div className="flex flex-col items-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                <span className="text-lg font-bold">{taskCounts.inProgress}</span>
+                <span className="text-lg font-bold">{employeeTaskCounts.in_progress}</span>
                 <span className="text-xs text-muted-foreground mt-1">In Progress</span>
               </div>
               <div className="flex flex-col items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <span className="text-lg font-bold">{taskCounts.completed}</span>
+                <span className="text-lg font-bold">{employeeTaskCounts.completed}</span>
                 <span className="text-xs text-muted-foreground mt-1">Completed</span>
               </div>
             </div>

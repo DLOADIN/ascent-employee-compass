@@ -2004,6 +2004,49 @@ def get_department_employees(current_user_id):
         cursor.close()
         conn.close()
 
+@app.route('/api/employee/progress', methods=['GET'])
+@token_required
+def get_employee_overall_progress(current_user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Get user and check role
+        cursor.execute('SELECT role, name, email FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        if not user or user['role'] != 'Employee':
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        # Get all tasks assigned to this employee
+        cursor.execute('SELECT progress, status FROM tasks WHERE assigned_to = %s', (current_user_id,))
+        tasks = cursor.fetchall()
+
+        total_tasks = len(tasks)
+        if total_tasks == 0:
+            overall_progress = 0
+        else:
+            overall_progress = round(sum(t['progress'] or 0 for t in tasks) / total_tasks)
+
+        # Count by status
+        completed = sum(1 for t in tasks if t['status'] == 'Completed')
+        in_progress = sum(1 for t in tasks if t['status'] == 'In Progress')
+        todo = sum(1 for t in tasks if t['status'] == 'Todo')
+
+        return jsonify({
+            "overall_progress": overall_progress,
+            "task_counts": {
+                "total": total_tasks,
+                "completed": completed,
+                "in_progress": in_progress,
+                "todo": todo
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 @app.route('/api/auth/validate', methods=['GET'])
 @token_required
 def validate_token(current_user_id):
