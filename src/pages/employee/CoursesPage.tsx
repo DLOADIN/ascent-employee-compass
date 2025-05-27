@@ -212,7 +212,7 @@ export default function CoursesPage() {
       <Tabs defaultValue="available" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full md:w-auto grid-cols-2">
           <TabsTrigger value="available">All Courses</TabsTrigger>
-          <TabsTrigger value="enrolled">My Progress</TabsTrigger>
+          <TabsTrigger value="enrolled">Overall Courses</TabsTrigger>
         </TabsList>
         
         <TabsContent value="available" className="mt-6">

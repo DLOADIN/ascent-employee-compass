@@ -144,7 +144,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle>Users by Role</CardTitle>
             <CardDescription>Distribution of users across different roles</CardDescription>
@@ -179,71 +179,9 @@ export default function AdminDashboard() {
               </PieChart>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Users by Department</CardTitle>
-            <CardDescription>Distribution of users across departments</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] flex items-center justify-center">
-              <BarChart
-                width={400}
-                height={300}
-                data={stats.departmentStats}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#8884d8" />
-              </BarChart>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Task Status Distribution</CardTitle>
-            <CardDescription>Overview of tasks by status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] flex items-center justify-center">
-              <PieChart width={300} height={300}>
-                <Pie
-                  data={stats.taskStats.map(item => ({
-                    ...item,
-                    total: stats.totalTasks
-                  }))}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={2}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                  labelLine={false}
-                >
-                  {stats.taskStats.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS.taskStatus[entry.name]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip type="task" />} />
-                <Legend 
-                  verticalAlign="bottom" 
-                  height={36}
-                  formatter={(value) => <span className="text-sm">{value}</span>}
-                />
-              </PieChart>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
+<Card>
           <CardHeader>
             <CardTitle>Recent Login Sessions</CardTitle>
             <CardDescription>Latest user activities</CardDescription>
@@ -274,6 +212,68 @@ export default function AdminDashboard() {
                       </div>
                     </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Users by Department</CardTitle>
+            <CardDescription>Distribution of users across departments</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] flex items-center justify-center">
+              <BarChart
+                width={400}
+                height={300}
+                data={stats.departmentStats}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#8884d8" />
+              </BarChart>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex justify-center">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Task Status Distribution</CardTitle>
+            <CardDescription>Overview of tasks by status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] flex items-center justify-center">
+              <PieChart width={550} height={250}>
+                <Pie
+                  data={stats.taskStats.map(item => ({
+                    ...item,
+                    total: stats.totalTasks
+                  }))}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={2}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  labelLine={false}
+                >
+                  {stats.taskStats.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS.taskStatus[entry.name]} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip type="task" />} />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
+                  formatter={(value) => <span className="text-sm">{value}</span>}
+                />
+              </PieChart>
             </div>
           </CardContent>
         </Card>
