@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from mysql.connector import connect
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -9,6 +9,9 @@ import logging
 from functools import wraps
 from dotenv import load_dotenv
 import json
+from fpdf import FPDF
+import io
+import traceback
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -1202,6 +1205,10 @@ def get_team_leader_dashboard(current_user_id):
         cursor.close()
         conn.close()
 
+
+
+
+
 @app.route('/api/tasks', methods=['POST'])
 @token_required
 def create_task(current_user_id):
@@ -2139,6 +2146,132 @@ def validate_token(current_user_id):
         cursor.close()
         conn.close()
 
+@app.route('/api/team-leader/export-tasks-pdf', methods=['GET'])
+@token_required
+def export_tasks_pdf(current_user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Get team leader's department
+        cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        if not user or user['role'] != 'TeamLeader':
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        department = user['department']
+
+        # Get all tasks in the department
+        cursor.execute('''
+            SELECT t.id, t.title, t.description, t.status, t.progress, t.deadline, u.name as assigned_to_name
+            FROM tasks t
+            JOIN users u ON t.assigned_to = u.id
+            WHERE u.department = %s
+            ORDER BY t.deadline DESC
+        ''', (department,))
+        tasks = cursor.fetchall()
+
+        # Create PDF
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.cell(200, 10, txt=f"Tasks for Department: {department}", ln=True, align='C')
+        pdf.ln(10)
+        pdf.set_font("Arial", size=10)
+        # Table header
+        pdf.cell(10, 10, "ID", 1)
+        pdf.cell(40, 10, "Title", 1)
+        pdf.cell(30, 10, "Assigned To", 1)
+        pdf.cell(25, 10, "Status", 1)
+        pdf.cell(20, 10, "Progress", 1)
+        pdf.cell(35, 10, "Deadline", 1)
+        pdf.ln()
+        # Table rows
+        for t in tasks:
+            deadline_str = str(t['deadline']) if not hasattr(t['deadline'], 'strftime') else t['deadline'].strftime('%Y-%m-%d %H:%M')
+            pdf.cell(10, 10, str(t['id']), 1)
+            pdf.cell(40, 10, t['title'][:20], 1)
+            pdf.cell(30, 10, t['assigned_to_name'][:15], 1)
+            pdf.cell(25, 10, t['status'], 1)
+            pdf.cell(20, 10, f"{t['progress']}%", 1)
+            pdf.cell(35, 10, deadline_str, 1)
+            pdf.ln()
+
+        # Output PDF to memory (fix for fpdf)
+        try:
+            pdf_bytes = pdf.output(dest='S').encode('latin1')
+            pdf_output = io.BytesIO(pdf_bytes)
+            pdf_output.seek(0)
+            return send_file(pdf_output, as_attachment=True, download_name="tasks.pdf", mimetype='application/pdf')
+        except Exception as e:
+            print('PDF generation error:', traceback.format_exc())
+            return jsonify({'error': 'PDF generation failed', 'details': str(e)}), 500
+    except Exception as e:
+        return jsonify({'error': 'Server error', 'details': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/admin/export-employees-pdf', methods=['GET'])
+@token_required
+def export_employees_pdf(current_user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Check if user is admin
+        cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+        user = cursor.fetchone()
+        if not user or user['role'] != 'Admin':
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        # Get all employees
+        cursor.execute('''
+            SELECT name, email, phone_number, department, role, skill_level
+            FROM users
+            WHERE role = 'Employee'
+            ORDER BY department, name
+        ''')
+        employees = cursor.fetchall()
+
+        # Create PDF
+        pdf = FPDF(orientation='L', unit='mm', format='A4')
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.cell(0, 10, txt="Employees Listing", ln=True, align='C')
+        pdf.ln(5)
+        pdf.set_font("Arial", size=10)
+        # Table header
+        col_widths = [45, 60, 35, 35, 25, 35]  # Adjusted to fit A4 landscape
+        headers = ["Name", "Email", "Phone Number", "Department", "Role", "Skill Level"]
+        for i, header in enumerate(headers):
+            pdf.cell(col_widths[i], 10, header, 1, 0, 'C')
+        pdf.ln()
+        # Table rows
+        for emp in employees:
+            pdf.cell(col_widths[0], 8, str(emp['name'])[:30], 1)
+            pdf.cell(col_widths[1], 8, str(emp['email'])[:40], 1)
+            pdf.cell(col_widths[2], 8, str(emp['phone_number'] or ''), 1)
+            pdf.cell(col_widths[3], 8, str(emp['department'] or ''), 1)
+            pdf.cell(col_widths[4], 8, str(emp['role']), 1)
+            pdf.cell(col_widths[5], 8, str(emp['skill_level'] or ''), 1)
+            pdf.ln()
+
+        # Output PDF to memory
+        try:
+            pdf_bytes = pdf.output(dest='S').encode('latin1')
+            pdf_output = io.BytesIO(pdf_bytes)
+            pdf_output.seek(0)
+            return send_file(pdf_output, as_attachment=True, download_name="employees.pdf", mimetype='application/pdf')
+        except Exception as e:
+            import traceback
+            print('PDF generation error:', traceback.format_exc())
+            return jsonify({'error': 'PDF generation failed', 'details': str(e)}), 500
+    except Exception as e:
+        return jsonify({'error': 'Server error', 'details': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 if __name__ == '__main__':
     # Log the server startup

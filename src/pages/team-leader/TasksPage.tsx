@@ -291,7 +291,7 @@ export default function TeamLeaderTasksPage() {
             <Button className="mt-4 sm:mt-0">
               <PlusIcon className="mr-2 h-4 w-4" />
               Create Task
-            </Button>
+            </Button> 
           </DialogTrigger>
           <DialogContent className="sm:max-w-[550px]">
             <DialogHeader>
@@ -394,13 +394,38 @@ export default function TeamLeaderTasksPage() {
                     </FormItem>
                   )}
                 />
-                <DialogFooter>
-                  <Button type="submit">Create Task</Button>
+               <DialogFooter>
+                   <Button type="submit">Create Task</Button> 
                 </DialogFooter>
               </form>
             </Form>
           </DialogContent>
         </Dialog>
+        {/* <Button
+          className="mt-4 sm:mt-0 ml-2"
+          variant="outline"
+          onClick={async () => {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:5000/api/team-leader/export-tasks-pdf', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const blob = await res.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'tasks.pdf';
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              window.URL.revokeObjectURL(url);
+            } else {
+              alert('Failed to download PDF');
+            }
+          }}
+        >
+          Print Tasks PDF
+        </Button> */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

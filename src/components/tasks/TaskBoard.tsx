@@ -290,11 +290,31 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
     <div className="space-y-6">
       {canEdit && filteredTeamMembers.length > 0 && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              Create New Task
-            </Button>
-          </DialogTrigger>
+          <Button
+          className="mt-4 sm:mt-0 ml-2"
+          variant="outline"
+          onClick={async () => {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:5000/api/team-leader/export-tasks-pdf', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const blob = await res.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'tasks.pdf';
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              window.URL.revokeObjectURL(url);
+            } else {
+              alert('Failed to download PDF');
+            }
+          }}
+        >
+          Print Tasks PDF
+        </Button>
           <DialogContent className="sm:max-w-[550px]">
             <DialogHeader>
               <DialogTitle>Create New Task</DialogTitle>
