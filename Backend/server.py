@@ -1127,6 +1127,26 @@ def get_team_leader_dashboard(current_user_id):
         ''', (user['department'],))
         department_courses = cursor.fetchall()
 
+        # For each course, get demonstration count from employee_course_demonstrations
+        for course in department_courses:
+            cursor.execute('''
+                SELECT COUNT(*) as demo_count
+                FROM employee_course_demonstrations d
+                JOIN users u ON d.user_id = u.id
+                WHERE TRIM(LOWER(d.course_name)) = TRIM(LOWER(%s)) AND u.department = %s
+            ''', (course['title'], user['department']))
+            demo_count = cursor.fetchone()['demo_count']
+            course['demonstrations_count'] = demo_count
+
+        # Get total number of completed courses by employees in the department
+        cursor.execute('''
+            SELECT COUNT(*) as completed_courses_count
+            FROM course_enrollments ce
+            JOIN users u ON ce.user_id = u.id
+            WHERE ce.completed = 1 AND u.department = %s AND u.role = 'Employee'
+        ''', (user['department'],))
+        completed_courses_count = cursor.fetchone()['completed_courses_count']
+
         # Get performance metrics for each team member
         performance_metrics = []
         for member in team_members:
@@ -1197,7 +1217,8 @@ def get_team_leader_dashboard(current_user_id):
             },
             'courses': {
                 'total': len(department_courses),
-                'list': department_courses
+                'list': department_courses,  # Now includes demonstrations_count
+                'completed_courses_count': completed_courses_count
             },
             'performance': {
                 'metrics': performance_metrics,

@@ -87,6 +87,8 @@ export default function TeamLeaderDashboard() {
     total: metric.taskStats.total
   }));
 
+  const totalDemonstrations = dashboardData.courses.list.reduce((sum, course) => sum + (course.demonstrations_count), 0);
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Team Leader Dashboard</h1>
@@ -128,6 +130,10 @@ export default function TeamLeaderDashboard() {
             <p className="text-xs text-muted-foreground mt-2">
               Available for {dashboardData.department}
             </p>
+            <div className="mt-2">
+              <span className="text-lg font-semibold">{totalDemonstrations}</span>
+              <span className="text-xs text-muted-foreground ml-2">Demonstrations Submitted</span>
+            </div>
           </CardContent>
         </Card>
 
