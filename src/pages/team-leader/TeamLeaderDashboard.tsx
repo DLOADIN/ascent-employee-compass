@@ -28,6 +28,7 @@ interface DashboardData {
     metrics: any[];
     bestPerformer: any;
     worstPerformer: any;
+    notStartedMembers: any[];
   };
 }
 
@@ -309,36 +310,28 @@ export default function TeamLeaderDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Most Needed Improvement</CardTitle>
-            <CardDescription>Lowest task completion rate</CardDescription>
+            <CardDescription>No tasks started</CardDescription>
           </CardHeader>
           <CardContent>
-            {dashboardData.performance.worstPerformer && dashboardData.performance.worstPerformer.taskStats.total > 0 ? (
+            {dashboardData.performance.notStartedMembers && dashboardData.performance.notStartedMembers.length > 0 ? (
               <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
-                    <span className="font-bold text-destructive">{dashboardData.performance.worstPerformer.name.charAt(0)}</span>
+                {dashboardData.performance.notStartedMembers.map(member => (
+                  <div key={member.id} className="flex items-center space-x-4">
+                    <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                      <span className="font-bold text-destructive">{member.name.charAt(0)}</span>
+                    </div>
+                    <div>
+                      <h3 className="font-medium">{member.name}</h3>
+                      <p className="text-sm text-muted-foreground">{member.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Course Demonstrations: {member.courseStats.demonstrations} | Unique Courses: {member.courseStats.enrolled}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-medium">{dashboardData.performance.worstPerformer.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {dashboardData.performance.worstPerformer.taskStats.completed} of {dashboardData.performance.worstPerformer.taskStats.total} tasks completed
-                    </p>
-                  </div>
-                </div>
-                <div className="w-full bg-secondary rounded-full h-2.5">
-                  <div 
-                    className="bg-destructive h-2.5 rounded-full" 
-                    style={{ width: `${dashboardData.performance.worstPerformer.taskStats.completionRate}%` }}
-                  ></div>
-                </div>
-                <div className="text-sm font-medium text-right">{dashboardData.performance.worstPerformer.taskStats.completionRate}% completion rate</div>
-                <Button size="sm" className="w-full">
-                  <Send className="mr-2 h-4 w-4" />
-                  Send Course Recommendations
-                </Button>
+                ))}
               </div>
             ) : (
-              <p className="text-muted-foreground">No data available</p>
+              <p className="text-muted-foreground">No team members without tasks</p>
             )}
           </CardContent>
         </Card>

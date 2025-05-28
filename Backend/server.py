@@ -1213,6 +1213,11 @@ def get_team_leader_dashboard(current_user_id):
         ''', (user['department'],))
         total_demonstrations = cursor.fetchone()['demo_count']
 
+        # Find team members who have not started any tasks
+        not_started_members = [
+            m for m in performance_metrics if m['taskStats']['total'] == 0
+        ]
+
         dashboard_data = {
             'department': user['department'],
             'teamMembers': {
@@ -1232,7 +1237,8 @@ def get_team_leader_dashboard(current_user_id):
             'performance': {
                 'metrics': performance_metrics,
                 'bestPerformer': best_performer,
-                'worstPerformer': worst_performer
+                'worstPerformer': worst_performer,
+                'notStartedMembers': not_started_members
             }
         }
 
