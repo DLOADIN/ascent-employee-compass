@@ -35,8 +35,9 @@ interface DashboardData {
       id: string;
       title: string;
       description: string;
-      user_progress: number;
-      is_completed: boolean;
+      course_name: string;
+      submitted_at: string;
+      document_url: string;
     }>;
   };
   department_stats: {
@@ -132,7 +133,7 @@ export default function EmployeeDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{dashboardData.courses.total}</div>
             <p className="text-xs text-muted-foreground mt-2">
-              {dashboardData.courses.enrolled} enrolled, {dashboardData.courses.completed} completed
+              {dashboardData.courses.enrolled} demonstrations submitted
             </p>
           </CardContent>
         </Card>

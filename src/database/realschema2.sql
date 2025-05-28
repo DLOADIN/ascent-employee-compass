@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 27, 2025 at 07:09 PM
+-- Generation Time: May 28, 2025 at 07:54 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -153,6 +153,26 @@ CREATE TABLE `course_watch_history` (
   `watch_position` int(11) DEFAULT NULL,
   `completed_segments` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`completed_segments`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employee_course_demonstrations`
+--
+
+CREATE TABLE `employee_course_demonstrations` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `course_name` longtext NOT NULL,
+  `project_title` longtext NOT NULL,
+  `project_description` text DEFAULT NULL,
+  `document_url` longtext DEFAULT NULL,
+  `submitted_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `employee_course_demonstrations`
+--
 
 -- --------------------------------------------------------
 
@@ -363,14 +383,35 @@ INSERT INTO `login_sessions` (`id`, `user_id`, `user_agent`, `ip_address`, `logi
 (160, 2, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 13:46:06', NULL, 0),
 (161, 14, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 13:47:51', NULL, 1),
 (162, 8, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 13:48:13', NULL, 0),
-(163, 6, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 13:48:45', NULL, 1),
-(164, 8, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 14:07:41', NULL, 1),
-(165, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 14:08:37', NULL, 1),
+(163, 6, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 13:48:45', NULL, 0),
+(164, 8, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 14:07:41', NULL, 0),
+(165, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 14:08:37', NULL, 0),
 (166, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 14:37:43', NULL, 0),
 (167, 25, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 14:39:13', NULL, 1),
-(168, 2, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 14:43:13', NULL, 1),
-(169, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 14:50:28', NULL, 1),
-(170, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 15:51:06', NULL, 1);
+(168, 2, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 14:43:13', NULL, 0),
+(169, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 14:50:28', NULL, 0),
+(170, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 15:51:06', NULL, 0),
+(171, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 17:11:01', NULL, 0),
+(172, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 17:29:48', NULL, 0),
+(173, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 19:05:00', NULL, 0),
+(174, 2, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 19:22:30', NULL, 1),
+(175, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 19:29:08', NULL, 0),
+(176, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 19:33:35', NULL, 0),
+(177, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-27 19:42:48', NULL, 0),
+(178, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 10:49:16', NULL, 0),
+(179, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 10:49:39', NULL, 0),
+(180, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 12:19:29', NULL, 1),
+(181, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 16:11:21', NULL, 0),
+(182, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 16:57:44', NULL, 0),
+(183, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 16:59:47', NULL, 0),
+(184, 6, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:04:26', NULL, 0),
+(185, 8, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:10:31', NULL, 1),
+(186, 23, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:11:13', NULL, 0),
+(187, 23, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:19:37', NULL, 1),
+(188, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:22:38', NULL, 0),
+(189, 6, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:23:04', NULL, 1),
+(190, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:27:06', NULL, 1),
+(191, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:39:29', NULL, 1);
 
 -- --------------------------------------------------------
 
@@ -488,7 +529,7 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `department`, `phone_number`, `skill_level`, `experience`, `experience_level`, `description`, `profile_image_url`, `is_active`, `created_at`, `updated_at`) VALUES
 (1, 'John Jerry', 'admin@gmail.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Admin', 'IT', '234-567-8901', 'Advanced', 5, 1, 'I am the main system Administrator', '', 1, '2025-05-14 15:00:59', '2025-05-24 20:29:36'),
 (2, 'Jill Wagner Joe', 'jillwagner@gmail.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'TeamLeader', 'IT', '+250123456789', 'Intermediate', 4, 4, 'IT Team Leader', NULL, 1, '2025-05-14 15:00:59', '2025-05-26 19:02:34'),
-(3, 'Fina Nicer', 'teamlead.finance@hrms.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'TeamLeader', 'Finance', '234-567-8901', 'Advanced', 4, 2, 'Finance Team Leaders', NULL, 1, '2025-05-14 15:00:59', '2025-05-26 19:09:32'),
+(3, 'Fina Niicer', 'teamlead.finance@hrms.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'TeamLeader', 'Finance', '234-567-8901', 'Advanced', 4, 2, 'Finance Team Leaders', NULL, 1, '2025-05-14 15:00:59', '2025-05-28 17:00:08'),
 (5, 'Jerry Jane', 'employee.finance@hrms.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'Finance', '+1234567893', 'Intermediate', 2, 1, 'Finance Department Employee', NULL, 1, '2025-05-14 15:00:59', '2025-05-22 19:15:25'),
 (6, 'Team Leader Sales', 'teamlead.sales@hrms.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'TeamLeader', 'Sales', '+1234567895', 'Advanced', 4, 2, 'Sales Team Leader', NULL, 1, '2025-05-14 15:06:17', '2025-05-19 15:56:57'),
 (7, 'Sales Employee', 'employee.sales@hrms.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'Sales', '+1234567896', 'Intermediate', 2, 1, 'Sales Department Employee', NULL, 1, '2025-05-14 15:06:17', '2025-05-19 15:57:09'),
@@ -583,6 +624,13 @@ ALTER TABLE `course_watch_history`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`),
   ADD KEY `course_id` (`course_id`);
+
+--
+-- Indexes for table `employee_course_demonstrations`
+--
+ALTER TABLE `employee_course_demonstrations`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `job_opportunities`
@@ -693,6 +741,12 @@ ALTER TABLE `course_watch_history`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `employee_course_demonstrations`
+--
+ALTER TABLE `employee_course_demonstrations`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
 -- AUTO_INCREMENT for table `job_opportunities`
 --
 ALTER TABLE `job_opportunities`
@@ -702,7 +756,7 @@ ALTER TABLE `job_opportunities`
 -- AUTO_INCREMENT for table `login_sessions`
 --
 ALTER TABLE `login_sessions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=171;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=192;
 
 --
 -- AUTO_INCREMENT for table `notifications`
@@ -778,6 +832,12 @@ ALTER TABLE `course_quiz_questions`
 ALTER TABLE `course_watch_history`
   ADD CONSTRAINT `course_watch_history_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `course_watch_history_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `employee_course_demonstrations`
+--
+ALTER TABLE `employee_course_demonstrations`
+  ADD CONSTRAINT `employee_course_demonstrations_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `job_opportunities`

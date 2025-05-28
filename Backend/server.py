@@ -1809,21 +1809,18 @@ def get_employee_dashboard(current_user_id):
         # Get upcoming tasks (next 5 by deadline)
         upcoming = sorted(tasks, key=lambda t: t['deadline'])[:5]
 
-        # Get department courses
-        cursor.execute('SELECT * FROM courses WHERE department = %s', (department,))
-        courses = cursor.fetchall()
-        total_courses = len(courses)
-
-        # Get course enrollments for this user
+        # Get employee's course demonstrations
         cursor.execute('''
-            SELECT ce.*, c.title, c.description
-            FROM course_enrollments ce
-            JOIN courses c ON ce.course_id = c.id
-            WHERE ce.user_id = %s
+            SELECT * FROM employee_course_demonstrations 
+            WHERE user_id = %s
+            ORDER BY submitted_at DESC
         ''', (current_user_id,))
-        enrollments = cursor.fetchall()
-        enrolled = len(enrollments)
-        completed_courses = sum(1 for e in enrollments if e['completed'])
+        demonstrations = cursor.fetchall()
+        total_demonstrations = len(demonstrations)
+
+        # Get unique course names from demonstrations
+        unique_courses = set(d['course_name'] for d in demonstrations)
+        total_courses = len(unique_courses)
 
         dashboard_data = {
             "department": department,
@@ -1848,27 +1845,28 @@ def get_employee_dashboard(current_user_id):
             },
             "courses": {
                 "total": total_courses,
-                "enrolled": enrolled,
-                "completed": completed_courses,
+                "enrolled": total_demonstrations,
+                "completed": total_demonstrations,
                 "list": [
                     {
-                        "id": str(e['course_id']),
-                        "title": e['title'],
-                        "description": e['description'],
-                        "user_progress": e['progress'],
-                        "is_completed": bool(e['completed'])
+                        "id": str(d['id']),
+                        "title": d['project_title'],
+                        "description": d['project_description'],
+                        "course_name": d['course_name'],
+                        "submitted_at": d['submitted_at'].isoformat() if hasattr(d['submitted_at'], 'isoformat') else str(d['submitted_at']),
+                        "document_url": d['document_url']
                     }
-                    for e in enrollments
+                    for d in demonstrations
                 ]
             },
             "department_stats": {
                 "total_tasks": total_tasks,
                 "completed_tasks": completed,
                 "total_courses": total_courses,
-                "enrolled_courses": enrolled,
+                "enrolled_courses": total_demonstrations,
                 "progress": {
                     "tasks": overall_progress,
-                    "courses": round((completed_courses / total_courses) * 100) if total_courses else 0
+                    "courses": 100 if total_demonstrations > 0 else 0
                 }
             }
         }
