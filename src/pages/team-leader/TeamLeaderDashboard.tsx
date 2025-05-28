@@ -235,9 +235,9 @@ export default function TeamLeaderDashboard() {
                           <div className="font-medium">
                           {metric.taskStats.completed}/{metric.taskStats.total}
                           </div>
-                          {/* <div className="text-sm text-muted-foreground">
+                          <div className="text-sm text-muted-foreground">
                           {metric.taskStats.completionRate}%
-                          </div> */}
+                          </div>
                         </td>
                         <td className="text-center p-2">
                           <div className="font-medium">

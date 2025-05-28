@@ -135,7 +135,7 @@ export default function EmployeeDashboard() {
             <p className="text-xs text-muted-foreground mt-2">
               {dashboardData.courses.enrolled} demonstrations submitted
             </p>
-            {dashboardData.courses.list.length > 0 && (
+            {/* {dashboardData.courses.list.length > 0 && (
               <div className="mt-4 space-y-2">
                 <p className="text-xs font-medium">Recent Demonstrations:</p>
                 {dashboardData.courses.list.slice(0, 3).map((demo) => (
@@ -148,7 +148,7 @@ export default function EmployeeDashboard() {
                   </div>
                 ))}
               </div>
-            )}
+            )} */}
           </CardContent>
         </Card>
 
