@@ -736,6 +736,10 @@ def get_dashboard_stats(current_user_id):
         course_count = cursor.fetchone()
         course_count_value = int(course_count['count']) if isinstance(course_count['count'], (int, float, str)) else 0
 
+        # Get total course enrollments from employee_course_demonstrations
+        cursor.execute('SELECT COUNT(*) as count FROM employee_course_demonstrations')
+        total_course_enrollments = int(cursor.fetchone()['count'])
+
         # Get recent sessions with user info
         cursor.execute('''
             SELECT ls.id, ls.login_time, ls.is_active, u.name as user_name
@@ -772,7 +776,8 @@ def get_dashboard_stats(current_user_id):
                     'isActive': bool(session['is_active'])
                 }
                 for session in recent_sessions
-            ]
+            ],
+            'totalCourseEnrollments': total_course_enrollments
         }
 
         return jsonify(stats)

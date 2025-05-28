@@ -16,6 +16,7 @@ interface DashboardStats {
   taskStats: { name: string; value: number }[];
   roleStats: { name: string; value: number }[];
   recentSessions?: { id: string; userName: string; loginTime: string; isActive: boolean }[];
+  totalCourseEnrollments: number;
 }
 
 // Add custom colors for the charts
@@ -127,17 +128,18 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Courses</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Course Enrollments</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold">{stats.totalCourses}</div>
+              <div className="text-2xl font-bold">{stats.totalCourseEnrollments}</div>
               <BookOpen className="h-6 w-6 text-muted-foreground" />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              Across all departments
+              All course demonstrations submitted by employees
             </p>
           </CardContent>
         </Card>
