@@ -144,10 +144,10 @@ export function Header({ onToggleSidebar }: HeaderProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuItem className="flex items-center">
+            {/* <DropdownMenuItem className="flex items-center">
               <User className="mr-2 h-4 w-4" />
-              Profile
-            </DropdownMenuItem>
+              <a href={`/settings/${currentUser.id}`}>Profile</a>
+            </DropdownMenuItem> */}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
           </DropdownMenuContent>
