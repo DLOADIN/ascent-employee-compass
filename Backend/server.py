@@ -1133,8 +1133,8 @@ def get_team_leader_dashboard(current_user_id):
                 SELECT COUNT(*) as demo_count
                 FROM employee_course_demonstrations d
                 JOIN users u ON d.user_id = u.id
-                WHERE TRIM(LOWER(d.course_name)) = TRIM(LOWER(%s)) AND u.department = %s
-            ''', (course['title'], user['department']))
+                WHERE u.department = %s
+            ''', (user['department'],))
             demo_count = cursor.fetchone()['demo_count']
             course['demonstrations_count'] = demo_count
 
@@ -1202,6 +1202,15 @@ def get_team_leader_dashboard(current_user_id):
         best_performer = performance_metrics[0] if performance_metrics else None
         worst_performer = performance_metrics[-1] if performance_metrics else None
 
+        # Get total demonstration count for the team leader's department only
+        cursor.execute('''
+            SELECT COUNT(*) as demo_count
+            FROM employee_course_demonstrations d
+            JOIN users u ON d.user_id = u.id
+            WHERE u.department = %s
+        ''', (user['department'],))
+        total_demonstrations = cursor.fetchone()['demo_count']
+
         dashboard_data = {
             'department': user['department'],
             'teamMembers': {
@@ -1216,9 +1225,7 @@ def get_team_leader_dashboard(current_user_id):
                 'list': department_tasks
             },
             'courses': {
-                'total': len(department_courses),
-                'list': department_courses,  # Now includes demonstrations_count
-                'completed_courses_count': completed_courses_count
+                'total_demonstrations': total_demonstrations
             },
             'performance': {
                 'metrics': performance_metrics,

@@ -22,8 +22,7 @@ interface DashboardData {
     list: any[];
   };
   courses: {
-    total: number;
-    list: any[];
+    total_demonstrations: number;
   };
   performance: {
     metrics: any[];
@@ -81,13 +80,17 @@ export default function TeamLeaderDashboard() {
     { name: "Todo", value: dashboardData.tasks.todo },
   ];
 
+  console.log('Total demonstrations:', dashboardData.courses.total_demonstrations);
+
+  const totalDemonstrations = dashboardData.courses.total_demonstrations || 0;
+  
+  console.log('Total demonstrations:', totalDemonstrations);
+
   const performanceData = dashboardData.performance.metrics.map(metric => ({
     name: metric.name,
     completed: metric.taskStats.completed,
     total: metric.taskStats.total
   }));
-
-  const totalDemonstrations = dashboardData.courses.list.reduce((sum, course) => sum + (course.demonstrations_count), 0);
 
   return (
     <div className="space-y-6">
@@ -126,14 +129,13 @@ export default function TeamLeaderDashboard() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Courses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.courses.total}</div>
+            <div className="text-2xl font-bold">{totalDemonstrations}</div>
             <p className="text-xs text-muted-foreground mt-2">
               Available for {dashboardData.department}
             </p>
-            <div className="mt-2">
-              <span className="text-lg font-semibold">{totalDemonstrations}</span>
-              <span className="text-xs text-muted-foreground ml-2">Demonstrations Submitted</span>
-            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {totalDemonstrations} total demonstrations
+            </p>
           </CardContent>
         </Card>
 
