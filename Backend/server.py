@@ -1160,22 +1160,23 @@ def get_team_leader_dashboard(current_user_id):
             ''', (member['id'],))
             member_task_stats = cursor.fetchone()
 
-            # Get course enrollment stats
+            # Get course demonstration stats from employee_course_demonstrations
             cursor.execute('''
-                SELECT COALESCE(COUNT(*), 0) as enrolled_courses
-                FROM course_enrollments ce
-                JOIN courses c ON ce.course_id = c.id
-                WHERE ce.user_id = %s AND c.department = %s
-            ''', (member['id'], user['department']))
-            course_stats = cursor.fetchone()
+                SELECT COUNT(*) as total_demos, COUNT(DISTINCT course_name) as unique_courses
+                FROM employee_course_demonstrations
+                WHERE user_id = %s
+            ''', (member['id'],))
+            demo_stats = cursor.fetchone()
+            total_demos = demo_stats['total_demos'] or 0
+            unique_courses = demo_stats['unique_courses'] or 0
+            total_courses = len(department_courses)
 
             total_tasks = member_task_stats['total_tasks'] or 0
             completed_tasks = member_task_stats['completed_tasks'] or 0
-            enrolled_courses = course_stats['enrolled_courses'] or 0
-            total_courses = len(department_courses)
 
             task_completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
-            course_enrollment_rate = (enrolled_courses / total_courses * 100) if total_courses > 0 else 0
+            # Use unique_courses for enrollment rate
+            course_enrollment_rate = (unique_courses / total_courses * 100) if total_courses > 0 else 0
             overall_rating = (task_completion_rate + course_enrollment_rate) / 2
 
             performance_metrics.append({
@@ -1188,8 +1189,9 @@ def get_team_leader_dashboard(current_user_id):
                     'completionRate': round(task_completion_rate, 1)
                 },
                 'courseStats': {
-                    'enrolled': enrolled_courses,
+                    'enrolled': unique_courses,
                     'total': total_courses,
+                    'demonstrations': total_demos,
                     'enrollmentRate': round(course_enrollment_rate, 1)
                 },
                 'overallRating': round(overall_rating, 1)

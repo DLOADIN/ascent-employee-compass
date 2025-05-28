@@ -128,13 +128,27 @@ export default function EmployeeDashboard() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Department Courses</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Course Demonstrations</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{dashboardData.courses.total}</div>
             <p className="text-xs text-muted-foreground mt-2">
               {dashboardData.courses.enrolled} demonstrations submitted
             </p>
+            {dashboardData.courses.list.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <p className="text-xs font-medium">Recent Demonstrations:</p>
+                {dashboardData.courses.list.slice(0, 3).map((demo) => (
+                  <div key={demo.id} className="text-xs p-2 bg-muted rounded">
+                    <p className="font-medium">{demo.title}</p>
+                    <p className="text-muted-foreground">{demo.course_name}</p>
+                    <p className="text-muted-foreground text-[10px]">
+                      Submitted: {new Date(demo.submitted_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

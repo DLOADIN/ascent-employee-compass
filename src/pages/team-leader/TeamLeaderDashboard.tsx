@@ -221,7 +221,7 @@ export default function TeamLeaderDashboard() {
                     <th className="text-left p-2">Team Member</th>
                     <th className="text-center p-2">Task Completion</th>
                     <th className="text-center p-2">Course Enrollment</th>
-                    <th className="text-right p-2">Overall Rating</th>
+                    {/* <th className="text-right p-2">Overall Rating</th> */}
                   </tr>
                 </thead>
                 <tbody>
@@ -235,19 +235,19 @@ export default function TeamLeaderDashboard() {
                           <div className="font-medium">
                           {metric.taskStats.completed}/{metric.taskStats.total}
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          {/* <div className="text-sm text-muted-foreground">
                           {metric.taskStats.completionRate}%
-                          </div>
+                          </div> */}
                         </td>
                         <td className="text-center p-2">
                           <div className="font-medium">
-                          {metric.courseStats.enrolled}/{metric.courseStats.total}
+                          {metric.courseStats.enrolled}
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          {/* <div className="text-sm text-muted-foreground">
                           {metric.courseStats.enrollmentRate}%
-                          </div>
+                          </div> */}
                         </td>
-                        <td className="text-right p-2">
+                        {/* <td className="text-right p-2">
                           <div className="flex items-center justify-end">
                             <span 
                               className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -259,7 +259,7 @@ export default function TeamLeaderDashboard() {
                             {metric.overallRating}%
                             </span>
                           </div>
-                        </td>
+                        </td> */}
                       </tr>
                   ))}
                 </tbody>
