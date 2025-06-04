@@ -102,7 +102,7 @@ export default function EmployeeDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">My Dashboard</h1>
+      <h1 className="text-3xl font-bold">Employee Dashboard</h1>
       <p className="text-muted-foreground">
         Welcome back, {currentUser.name}! Here's your progress and tasks overview for the {dashboardData.department} department.
       </p>
