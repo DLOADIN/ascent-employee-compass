@@ -7,7 +7,7 @@ Ascent Employee Compass is a comprehensive HR management platform designed to st
 - **Role-based Dashboard:** Separate dashboards for Admin, Team Leader, and Employee roles.
 - **Task Management:** Assign, update, and track tasks with progress and documentation.
 - **Progress Tracking:** Employees and team leaders can view individual and departmental progress.
-- **Course Management:** Enroll in and track progress on department-specific courses.
+- **The Course Management:** Enroll in and track progress on department-specific courses.
 - **Notifications:** System-wide and targeted notifications for important events.
 - **User Management:** Admins can add, edit, promote, demote, and delete users.
 - **PDF Export:** Export employee and team leader tables, as well as department tasks, to PDF.
