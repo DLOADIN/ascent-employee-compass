@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +17,7 @@ import TeamLeadersPage from "./pages/admin/TeamLeadersPage";
 import NotificationsPage from "./pages/admin/NotificationsPage";
 import EmailPage from "./pages/admin/EmailPage";
 import SettingsPage from "./pages/admin/SettingsPage";
+import ProgressPage from "./pages/admin/ProgressPage";
 
 // Team Leader pages
 import TeamLeaderDashboard from "./pages/team-leader/TeamLeaderDashboard";
@@ -52,6 +52,7 @@ const App = () => (
                 <Route index element={<AdminDashboard />} />
                 <Route path="employees" element={<EmployeesPage />} />
                 <Route path="team-leaders" element={<TeamLeadersPage />} />
+                <Route path="progress" element={<ProgressPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="email" element={<EmailPage />} />
                 <Route path="settings" element={<SettingsPage />} />

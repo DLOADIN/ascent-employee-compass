@@ -26,10 +26,20 @@ import { EmployeeDetailsDialog } from "@/components/admin/EmployeeDetailsDialog"
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { PromoteToTeamLeaderDialog } from "@/components/admin/PromoteToTeamLeaderDialog";
 import axios from "axios";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+const skillLevelSchema = z.object({
+  skillLevel: z.enum(["Beginner", "Intermediate", "Advanced"]),
+});
 
 const EmployeesPage = () => {
   const { toast } = useToast();
-  const { users } = useAppContext();
+  const { users, tasks, courses } = useAppContext();
   const [employees, setEmployees] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,6 +51,8 @@ const EmployeesPage = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [roleFilter, setRoleFilter] = useState<UserRole | "All">("All");
   const [departmentFilter, setDepartmentFilter] = useState<Department | "All">("All");
+  const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false);
+  const [skillDialogUser, setSkillDialogUser] = useState<User | null>(null);
 
   useEffect(() => {
     fetchEmployees();
@@ -315,6 +327,33 @@ const EmployeesPage = () => {
     }
   };
 
+  const handleOpenSkillDialog = (user: User) => {
+    setSkillDialogUser(user);
+    setIsSkillDialogOpen(true);
+  };
+
+  const handleSkillDialogClose = () => {
+    setIsSkillDialogOpen(false);
+    setSkillDialogUser(null);
+  };
+
+  const handleSkillLevelUpdate = async (values: { skillLevel: SkillLevel }) => {
+    if (!skillDialogUser) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `http://localhost:5000/api/users/${skillDialogUser.id}/promote-skill`,
+        { skillLevel: values.skillLevel },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setEmployees((prev) => prev.map(emp => emp.id === skillDialogUser.id ? { ...emp, skillLevel: values.skillLevel } : emp));
+      toast({ title: "Success", description: `${skillDialogUser.name}'s skill level updated to ${values.skillLevel}` });
+      handleSkillDialogClose();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.response?.data?.message || "Failed to update skill level", variant: "destructive" });
+    }
+  };
+
   if (loading) {
     return <div>Loading employees...</div>;
   }
@@ -466,6 +505,15 @@ const EmployeesPage = () => {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="px-3 w-fit bg-blue-50 hover:bg-blue-100 text-blue-700"
+                            onClick={e => { e.stopPropagation(); handleOpenSkillDialog(user); }}
+                            title="Update Skill Level"
+                          >
+                            <span className="font-bold">Skill Level Promote</span>
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -511,8 +559,90 @@ const EmployeesPage = () => {
           />
         </>
       )}
+
+      {skillDialogUser && (
+        <Dialog open={isSkillDialogOpen} onOpenChange={setIsSkillDialogOpen}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Update Skill Level</DialogTitle>
+            </DialogHeader>
+            <div className="mb-2">
+              <div className="font-semibold">{skillDialogUser.name}</div>
+              <div className="text-xs text-muted-foreground mb-2">Current: {skillDialogUser.skillLevel || "-"}</div>
+              <div className="text-sm mb-2">
+                <div className="font-medium">Task Completion:</div>
+                {/* Show number of completed tasks and total tasks */}
+                {(() => {
+                  const userTasks = tasks.filter(t => t.assignedTo === skillDialogUser.id || (Array.isArray(t.assignedTo) && t.assignedTo.includes(skillDialogUser.id)));
+                  const completed = userTasks.filter(t => t.status === "Completed").length;
+                  return `${completed} of ${userTasks.length} tasks completed`;
+                })()}
+              </div>
+              <div className="text-sm mb-2">
+                <div className="font-medium">Courses Completed:</div>
+                {/* Show number of completed courses and total courses enrolled */}
+                {(() => {
+                  const userCourses = courses.filter(c => c.enrolledUsers && c.enrolledUsers.includes(skillDialogUser.id));
+                  const completed = userCourses.filter(c => c.status === "Completed").length;
+                  return `${completed} of ${userCourses.length} courses completed`;
+                })()}
+              </div>
+            </div>
+            <SkillLevelForm user={skillDialogUser} onSubmit={handleSkillLevelUpdate} onCancel={handleSkillDialogClose} />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
+
+function SkillLevelForm({ user, onSubmit, onCancel }: { user: User, onSubmit: (values: { skillLevel: SkillLevel }) => void, onCancel: () => void }) {
+  const form = useForm<{ skillLevel: SkillLevel }>({
+    resolver: zodResolver(skillLevelSchema),
+    defaultValues: { skillLevel: user.skillLevel || "Beginner" },
+  });
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="skillLevel"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Skill Level</FormLabel>
+              <FormControl>
+                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
+                  <FormItem>
+                    <FormControl>
+                      <RadioGroupItem value="Beginner" />
+                    </FormControl>
+                    <FormLabel>Beginner</FormLabel>
+                  </FormItem>
+                  <FormItem>
+                    <FormControl>
+                      <RadioGroupItem value="Intermediate" />
+                    </FormControl>
+                    <FormLabel>Intermediate</FormLabel>
+                  </FormItem>
+                  <FormItem>
+                    <FormControl>
+                      <RadioGroupItem value="Advanced" />
+                    </FormControl>
+                    <FormLabel>Advanced</FormLabel>
+                  </FormItem>
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button type="submit">Update</Button>
+        </div>
+      </form>
+    </Form>
+  );
+}
 
 export default EmployeesPage;
