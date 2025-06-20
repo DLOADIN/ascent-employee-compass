@@ -10,7 +10,9 @@ import {
   Settings,
   LogOut,
   Mail,
-  BarChart
+  BarChart,
+  Briefcase,
+  CalendarCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -29,6 +31,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
     { icon: Users, label: "Employees", to: "/admin/employees" },
     { icon: Users, label: "Team Leaders", to: "/admin/team-leaders" },
     { icon: BarChart, label: "Progress", to: "/admin/progress" },
+    { icon: Briefcase, label: "Job Applications", to: "/admin/job-applications" },
+    { icon: CalendarCheck, label: "Leave Requests", to: "/admin/leave-requests" },
     { icon: Bell, label: "Notifications", to: "/admin/notifications" },
     { icon: Mail, label: "Email", to: "/admin/email" }, 
     { icon: Settings, label: "Settings", to: "/admin/settings" }
@@ -46,6 +50,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
     { icon: Home, label: "Dashboard", to: "/employee" },
     { icon: FileText, label: "Tasks", to: "/employee/tasks" },
     { icon: BookOpen, label: "Courses", to: "/employee/courses" },
+    { icon: Briefcase, label: "Apply for Job", to: "/employee/job-apply" },
+    { icon: CalendarCheck, label: "Request Leave", to: "/employee/leave-request" },
     // { icon: Mail, label: "Email", to: "/employee/email" },
     { icon: Settings, label: "Settings", to: "/employee/settings" }
   ];

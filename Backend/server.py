@@ -1,10 +1,10 @@
 from flask import Flask, request, jsonify, send_file
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from mysql.connector import connect
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 import jwt
 import datetime
-import os
 import os
 from pathlib import Path
 import logging
@@ -16,6 +16,7 @@ import io
 import traceback
 from decimal import Decimal
 from werkzeug.utils import secure_filename
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,10 +33,18 @@ app = Flask(__name__)
 CORS(app, resources={
     r"/api/*": {
         "origins": ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080", "http://localhost:8081", "http://localhost:8082", "http://localhost:8083", "http://localhost:8084"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
 })
+
+# If not present, add an OPTIONS handler for /api/job-opportunities
+@app.route('/api/job-opportunities', methods=['OPTIONS'])
+def job_opportunities_options():
+    return '', 200
+
+CV_UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'cvs')
+os.makedirs(CV_UPLOAD_FOLDER, exist_ok=True)
 
 # Database configuration
 db_config = {
@@ -2463,6 +2472,164 @@ def convert_decimals(obj):
         return float(obj)
     else:
         return obj
+    
+@app.route('/api/leave-requests', methods=['GET'])
+@token_required
+def get_leave_requests(current_user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+    user = cursor.fetchone()
+    if user['role'] in ['Admin', 'TeamLeader']:
+        cursor.execute('''
+            SELECT lr.*, u.name as employee_name
+            FROM leave_requests lr
+            JOIN users u ON lr.user_id = u.id
+            ORDER BY lr.submitted_at DESC
+        ''')
+    else:
+        cursor.execute('''
+            SELECT lr.*, u.name as employee_name
+            FROM leave_requests lr
+            JOIN users u ON lr.user_id = u.id
+            WHERE lr.user_id = %s
+            ORDER BY lr.submitted_at DESC
+        ''', (current_user_id,))
+    requests = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(requests)
+
+@app.route('/api/leave-requests', methods=['POST'])
+@token_required
+def submit_leave_request(current_user_id):
+    data = request.get_json()
+    required = ['type', 'start_date', 'end_date', 'reason']
+    if not all(k in data for k in required):
+        return jsonify({'error': 'Missing fields'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('''
+        INSERT INTO leave_requests (user_id, type, start_date, end_date, reason)
+        VALUES (%s, %s, %s, %s, %s)
+    ''', (current_user_id, data['type'], data['start_date'], data['end_date'], data['reason']))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({'message': 'Leave request submitted'}), 201
+
+@app.route('/api/job-applications', methods=['GET'])
+@token_required
+def get_job_applications(current_user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+    user = cursor.fetchone()
+    if user['role'] in ['Admin', 'TeamLeader']:
+        cursor.execute('''
+            SELECT ja.*, u.name as applicant_name
+            FROM job_applications ja
+            JOIN users u ON ja.user_id = u.id
+            ORDER BY ja.submitted_at DESC
+        ''')
+    else:
+        cursor.execute('''
+            SELECT ja.*, u.name as applicant_name
+            FROM job_applications ja
+            JOIN users u ON ja.user_id = u.id
+            WHERE ja.user_id = %s
+            ORDER BY ja.submitted_at DESC
+        ''', (current_user_id,))
+    applications = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(applications)
+
+@app.route('/api/job-applications', methods=['POST'])
+@token_required
+def submit_job_application(current_user_id):
+    job_title = request.form.get('job_title')
+    cover_letter = request.form.get('cover_letter')
+    cv_file = request.files.get('cv')
+    if not job_title or not cv_file:
+        return jsonify({'error': 'Missing job_title or CV file'}), 400
+    # File validation
+    allowed_ext = {'.pdf', '.doc', '.docx'}
+    filename = secure_filename(cv_file.filename)
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in allowed_ext:
+        return jsonify({'error': 'Invalid file type. Only PDF, DOC, DOCX allowed.'}), 400
+    if len(cv_file.read()) > 2 * 1024 * 1024:
+        return jsonify({'error': 'File too large. Max 2MB.'}), 400
+    cv_file.seek(0)
+    # Unique filename
+    unique_filename = f"{current_user_id}_{int(time.time())}_{filename}"
+    filepath = os.path.join(CV_UPLOAD_FOLDER, unique_filename)
+    cv_file.save(filepath)
+    cv_url = f'/uploads/cvs/{unique_filename}'
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('''
+        INSERT INTO job_applications (job_title, user_id, cover_letter, cv_url)
+        VALUES (%s, %s, %s, %s)
+    ''', (job_title, current_user_id, cover_letter, cv_url))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({'message': 'Application submitted', 'cv_url': cv_url}), 201
+
+@app.route('/api/job-applications/<int:application_id>/status', methods=['PATCH'])
+@token_required
+def update_job_application_status(current_user_id, application_id):
+    data = request.get_json()
+    status = data.get('status')
+    if status not in ['Pending', 'Reviewed', 'Accepted', 'Rejected']:
+        return jsonify({'error': 'Invalid status'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+    user = cursor.fetchone()
+    if user['role'] not in ['Admin', 'TeamLeader']:
+        return jsonify({'error': 'Unauthorized'}), 403
+    cursor.execute('UPDATE job_applications SET status = %s WHERE id = %s', (status, application_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({'message': 'Status updated'})
+
+@app.route('/api/leave-requests/<int:request_id>/status', methods=['PATCH'])
+@token_required
+def update_leave_request_status(current_user_id, request_id):
+    data = request.get_json()
+    status = data.get('status')
+    response = data.get('response', None)
+    if status not in ['Pending', 'Approved', 'Rejected']:
+        return jsonify({'error': 'Invalid status'}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+    user = cursor.fetchone()
+    if user['role'] not in ['Admin', 'TeamLeader']:
+        return jsonify({'error': 'Unauthorized'}), 403
+    cursor.execute('UPDATE leave_requests SET status = %s, response = %s WHERE id = %s', (status, response, request_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({'message': 'Status updated'})
+
+@app.route('/uploads/cvs/<filename>')
+def serve_cv(filename):
+    return send_file(os.path.join(CV_UPLOAD_FOLDER, filename))
+
+
+
+
+
+
+
+
+
+
 
 @app.route('/api/users/<int:user_id>/promote-skill', methods=['PUT'])
 @token_required
@@ -2495,6 +2662,7 @@ def promote_user_skill(current_user_id, user_id):
     finally:
         cursor.close()
         conn.close()
+
 
 #
 if __name__ == '__main__':

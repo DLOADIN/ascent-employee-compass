@@ -18,6 +18,8 @@ import NotificationsPage from "./pages/admin/NotificationsPage";
 import EmailPage from "./pages/admin/EmailPage";
 import SettingsPage from "./pages/admin/SettingsPage";
 import ProgressPage from "./pages/admin/ProgressPage";
+import JobApplicationsPage from "./pages/admin/JobApplicationsPage";
+import LeaveRequestsPage from "./pages/admin/LeaveRequestsPage";
 
 // Team Leader pages
 import TeamLeaderDashboard from "./pages/team-leader/TeamLeaderDashboard";
@@ -30,6 +32,8 @@ import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
 import EmployeeTasksPage from "./pages/employee/TasksPage";
 import EmployeeCoursesPage from "./pages/employee/CoursesPage";
 import EmployeeSettingsPage from "./pages/employee/SettingsPage";
+import JobApplicationForm from "./pages/employee/JobApplicationForm";
+import LeaveRequestForm from "./pages/employee/LeaveRequestForm";
 
 // New routes for email pages
 import TeamLeaderEmailPage from "./pages/team-leader/EmailPage";
@@ -53,6 +57,8 @@ const App = () => (
                 <Route path="employees" element={<EmployeesPage />} />
                 <Route path="team-leaders" element={<TeamLeadersPage />} />
                 <Route path="progress" element={<ProgressPage />} />
+                <Route path="job-applications" element={<JobApplicationsPage />} />
+                <Route path="leave-requests" element={<LeaveRequestsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="email" element={<EmailPage />} />
                 <Route path="settings" element={<SettingsPage />} />
@@ -72,6 +78,8 @@ const App = () => (
                 <Route index element={<EmployeeDashboard />} />
                 <Route path="tasks" element={<EmployeeTasksPage />} />
                 <Route path="courses" element={<EmployeeCoursesPage />} />
+                <Route path="job-apply" element={<JobApplicationForm />} />
+                <Route path="leave-request" element={<LeaveRequestForm />} />
                 <Route path="settings" element={<EmployeeSettingsPage />} />
                 <Route path="email" element={<EmailPage />} />
               </Route>
