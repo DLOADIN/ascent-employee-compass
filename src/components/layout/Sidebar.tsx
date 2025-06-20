@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { useAppContext } from "@/context/AppContext";
 import { NavLink } from "react-router-dom";
@@ -10,7 +9,8 @@ import {
   Bell, 
   Settings,
   LogOut,
-  Mail
+  Mail,
+  BarChart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -28,6 +28,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
     { icon: Home, label: "Dashboard", to: "/admin" },
     { icon: Users, label: "Employees", to: "/admin/employees" },
     { icon: Users, label: "Team Leaders", to: "/admin/team-leaders" },
+    { icon: BarChart, label: "Progress", to: "/admin/progress" },
     { icon: Bell, label: "Notifications", to: "/admin/notifications" },
     { icon: Mail, label: "Email", to: "/admin/email" }, 
     { icon: Settings, label: "Settings", to: "/admin/settings" }

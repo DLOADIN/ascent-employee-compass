@@ -2464,6 +2464,38 @@ def convert_decimals(obj):
     else:
         return obj
 
+@app.route('/api/users/<int:user_id>/promote-skill', methods=['PUT'])
+@token_required
+def promote_user_skill(current_user_id, user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Check if current user is admin
+        cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+        current_user = cursor.fetchone()
+        if not current_user or current_user['role'] != 'Admin':
+            return jsonify({'error': 'Only admins can promote skill level'}), 403
+
+        data = request.get_json()
+        skill_level = data.get('skillLevel')
+        if skill_level not in ['Beginner', 'Intermediate', 'Advanced']:
+            return jsonify({'error': 'Invalid skill level'}), 400
+
+        cursor.execute('UPDATE users SET skill_level = %s WHERE id = %s', (skill_level, user_id))
+        conn.commit()
+
+        # Fetch and return updated user
+        cursor.execute('SELECT id, name, email, skill_level FROM users WHERE id = %s', (user_id,))
+        updated_user = cursor.fetchone()
+        return jsonify({'message': 'Skill level updated', 'user': updated_user})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 #
 if __name__ == '__main__':
     # Log the server startup
