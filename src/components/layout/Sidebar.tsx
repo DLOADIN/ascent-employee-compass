@@ -43,7 +43,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
     { icon: FileText, label: "Tasks", to: "/team-leader/tasks" },
     { icon: Users, label: "Employees", to: "/team-leader/employees" },
     // { icon: Mail, label: "Email", to: "/team-leader/email" },
-    { icon: Settings, label: "Settings", to: "/team-leader/settings" }
+    { icon: Settings, label: "Settings", to: "/team-leader/settings" },
+    { icon: BookOpen, label: "Course Quizzes", to: "/team-leader/courses" }
   ];
 
   const employeeLinks = [
@@ -53,7 +54,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
     { icon: Briefcase, label: "Apply for Job", to: "/employee/job-apply" },
     { icon: CalendarCheck, label: "Request Leave", to: "/employee/leave-request" },
     // { icon: Mail, label: "Email", to: "/employee/email" },
-    { icon: Settings, label: "Settings", to: "/employee/settings" }
+    { icon: Settings, label: "Settings", to: "/employee/settings" },
+    { icon: FileText, label: "My Quizzes", to: "/employee/quizzes" }
   ];
 
   let links;

@@ -26,6 +26,7 @@ import TeamLeaderDashboard from "./pages/team-leader/TeamLeaderDashboard";
 import TeamLeaderTasksPage from "./pages/team-leader/TasksPage";
 import TeamLeaderEmployeePage from "./pages/team-leader/Employees";
 import TeamLeaderSettingsPage from "./pages/team-leader/SettingsPage";
+import TeamLeaderCoursesPage from "@/pages/team-leader/TeamLeaderCoursesPage";
 
 // Employee pages
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard";
@@ -34,6 +35,7 @@ import EmployeeCoursesPage from "./pages/employee/CoursesPage";
 import EmployeeSettingsPage from "./pages/employee/SettingsPage";
 import JobApplicationForm from "./pages/employee/JobApplicationForm";
 import LeaveRequestForm from "./pages/employee/LeaveRequestForm";
+import EmployeeQuizzesPage from "@/pages/employee/EmployeeQuizzesPage";
 
 // New routes for email pages
 import TeamLeaderEmailPage from "./pages/team-leader/EmailPage";
@@ -71,6 +73,7 @@ const App = () => (
                 <Route path="employees" element={<TeamLeaderEmployeePage />} />
                 <Route path="settings" element={<TeamLeaderSettingsPage />} />
                 <Route path="email" element={<TeamLeaderEmailPage />} />
+                <Route path="courses" element={<TeamLeaderCoursesPage />} />
               </Route>
               
               {/* Employee Routes */}
@@ -82,6 +85,7 @@ const App = () => (
                 <Route path="leave-request" element={<LeaveRequestForm />} />
                 <Route path="settings" element={<EmployeeSettingsPage />} />
                 <Route path="email" element={<EmailPage />} />
+                <Route path="quizzes" element={<EmployeeQuizzesPage />} />
               </Route>
               
               <Route path="/" element={<LoginPage />} />

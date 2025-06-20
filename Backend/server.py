@@ -32,11 +32,31 @@ app = Flask(__name__)
 # Configure CORS to allow requests from your frontend
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080", "http://localhost:8081", "http://localhost:8082", "http://localhost:8083", "http://localhost:8084"],
+        "origins": [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://localhost:8080",
+            "http://localhost:8081",
+            "http://localhost:8082",
+            "http://localhost:8083",
+            "http://localhost:8084"
+        ],
         "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
 })
+
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    if origin:
+        response.headers['Access-Control-Allow-Origin'] = origin
+    else:
+        response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,PATCH,OPTIONS'
+    return response
 
 # If not present, add an OPTIONS handler for /api/job-opportunities
 @app.route('/api/job-opportunities', methods=['OPTIONS'])
@@ -45,6 +65,12 @@ def job_opportunities_options():
 
 CV_UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'cvs')
 os.makedirs(CV_UPLOAD_FOLDER, exist_ok=True)
+
+QUIZ_SUBMISSION_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'quiz_submissions')
+os.makedirs(QUIZ_SUBMISSION_FOLDER, exist_ok=True)
+
+QUIZ_UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'quizzes')
+os.makedirs(QUIZ_UPLOAD_FOLDER, exist_ok=True)
 
 # Database configuration
 db_config = {
@@ -2663,6 +2689,135 @@ def promote_user_skill(current_user_id, user_id):
         cursor.close()
         conn.close()
 
+@app.route('/api/quizzes/<int:quiz_id>/submit', methods=['POST'])
+@token_required
+def submit_quiz(current_user_id, quiz_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    # Check if user is allowed to submit (assigned or in department)
+    cursor.execute('SELECT department, assigned_to FROM quizzes WHERE id = %s', (quiz_id,))
+    quiz = cursor.fetchone()
+    cursor.execute('SELECT department FROM users WHERE id = %s', (current_user_id,))
+    user = cursor.fetchone()
+    if not quiz or not user:
+        return jsonify({'error': 'Quiz or user not found'}), 404
+    if quiz['assigned_to'] and int(quiz['assigned_to']) != current_user_id:
+        return jsonify({'error': 'Not assigned to you'}), 403
+    if not quiz['assigned_to'] and quiz['department'] != user['department']:
+        return jsonify({'error': 'Not your department'}), 403
+
+    file = request.files.get('file')
+    if not file:
+        return jsonify({'error': 'No file uploaded'}), 400
+    filename = secure_filename(file.filename)
+    unique_filename = f'{quiz_id}_{current_user_id}_{int(time.time())}_{filename}'
+    filepath = os.path.join(QUIZ_SUBMISSION_FOLDER, unique_filename)
+    file.save(filepath)
+    file_url = f'/uploads/quiz_submissions/{unique_filename}'
+
+    cursor.execute('''
+        INSERT INTO quiz_submissions (quiz_id, user_id, file_url)
+        VALUES (%s, %s, %s)
+    ''', (quiz_id, current_user_id, file_url))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({'message': 'Submission successful'})
+
+@app.route('/api/quizzes/<int:quiz_id>/submissions', methods=['GET'])
+@token_required
+def get_quiz_submissions(current_user_id, quiz_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    # Only TeamLeader who uploaded can view
+    cursor.execute('SELECT uploaded_by FROM quizzes WHERE id = %s', (quiz_id,))
+    quiz = cursor.fetchone()
+    if not quiz or quiz['uploaded_by'] != current_user_id:
+        return jsonify({'error': 'Not authorized'}), 403
+    cursor.execute('''
+        SELECT qs.*, u.name as user_name FROM quiz_submissions qs
+        JOIN users u ON qs.user_id = u.id
+        WHERE qs.quiz_id = %s
+    ''', (quiz_id,))
+    submissions = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(submissions)
+
+@app.route('/api/quizzes', methods=['OPTIONS'])
+def quizzes_options():
+    return '', 200
+
+@app.route('/api/quizzes', methods=['POST'])
+@token_required
+def upload_quiz(current_user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
+    user = cursor.fetchone()
+    if not user or user['role'] != 'TeamLeader':
+        return jsonify({'error': 'Only TeamLeaders can upload quizzes'}), 403
+
+    title = request.form.get('title')
+    description = request.form.get('description')
+    assigned_to = request.form.get('assigned_to')  # optional
+    file = request.files.get('file')
+    if not title or not file:
+        return jsonify({'error': 'Missing title or file'}), 400
+
+    filename = secure_filename(file.filename)
+    unique_filename = f"{int(time.time())}_{filename}"
+    filepath = os.path.join(QUIZ_UPLOAD_FOLDER, unique_filename)
+    file.save(filepath)
+    file_url = f'/uploads/quizzes/{unique_filename}'
+
+    cursor.execute('''
+        INSERT INTO quizzes (title, description, file_url, uploaded_by, department, assigned_to)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    ''', (title, description, file_url, current_user_id, user['department'], assigned_to if assigned_to else None))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({'message': 'Quiz uploaded successfully'}), 201
+
+@app.route('/api/quizzes', methods=['GET'])
+@token_required
+def list_quizzes(current_user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT role, department FROM users WHERE id = %s', (current_user_id,))
+    user = cursor.fetchone()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if user['role'] == 'TeamLeader':
+        # See all quizzes uploaded by this team leader
+        cursor.execute('SELECT * FROM quizzes WHERE uploaded_by = %s', (current_user_id,))
+    else:
+        # Employee: see quizzes for their department or assigned to them
+        cursor.execute('''
+            SELECT * FROM quizzes
+            WHERE (department = %s AND (assigned_to IS NULL OR assigned_to = ''))
+               OR assigned_to = %s
+        ''', (user['department'], current_user_id))
+    quizzes = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(quizzes)
+
+@app.route('/uploads/quizzes/<filename>')
+def serve_quiz_file(filename):
+    filepath = os.path.join(QUIZ_UPLOAD_FOLDER, filename)
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'File not found'}), 404
+    return send_file(filepath, as_attachment=True)
+
+@app.route('/uploads/quiz_submissions/<filename>')
+def serve_quiz_submission_file(filename):
+    submission_path = os.path.join(QUIZ_SUBMISSION_FOLDER, filename)
+    if not os.path.exists(submission_path):
+        return jsonify({'error': 'File not found'}), 404
+    return send_file(submission_path, as_attachment=True)
 
 #
 if __name__ == '__main__':

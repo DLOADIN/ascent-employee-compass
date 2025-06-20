@@ -89,7 +89,7 @@ export default function LeaveRequestForm() {
           <CardTitle>Request Leave</CardTitle>
           <CardDescription>Submit a leave request for HR/Admin to review and approve.</CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
             <div>
               <Label htmlFor="type">Type of Leave</Label>
@@ -137,7 +137,7 @@ export default function LeaveRequestForm() {
             <Button type="submit">Request Leave</Button>
             {message && <div className="text-green-600 text-sm mt-2">{message}</div>}
           </CardFooter>
-        </form>
+    </form>
       </Card>
 
       {/* Filters */}

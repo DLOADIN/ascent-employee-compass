@@ -65,7 +65,7 @@ export default function JobApplicationForm() {
           <CardTitle>Apply for a Job</CardTitle>
           <CardDescription>Submit your application and upload your CV for the job you are interested in.</CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
             <div>
               <Label htmlFor="job-title">Job Title</Label>
@@ -82,21 +82,21 @@ export default function JobApplicationForm() {
               <Textarea
                 id="cover-letter"
                 placeholder="Write your cover letter here..."
-                value={coverLetter}
-                onChange={e => setCoverLetter(e.target.value)}
+        value={coverLetter}
+        onChange={e => setCoverLetter(e.target.value)}
                 required
                 className="min-h-[120px]"
-              />
+      />
             </div>
             <div>
               <Label htmlFor="cv">Upload CV (PDF, DOC, DOCX, max 2MB)</Label>
               <Input
                 id="cv"
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={e => setCv(e.target.files?.[0] || null)}
+        type="file"
+        accept=".pdf,.doc,.docx"
+        onChange={e => setCv(e.target.files?.[0] || null)}
                 required
-              />
+      />
               {cv && <div className="text-xs text-muted-foreground mt-1">Selected: {cv.name}</div>}
             </div>
           </CardContent>
@@ -104,7 +104,7 @@ export default function JobApplicationForm() {
             <Button type="submit">Apply</Button>
             {message && <div className="text-green-600 text-sm mt-2">{message}</div>}
           </CardFooter>
-        </form>
+    </form>
       </Card>
     </div>
   );

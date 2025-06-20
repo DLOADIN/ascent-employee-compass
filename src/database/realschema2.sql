@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 28, 2025 at 09:13 PM
+-- Generation Time: Jun 20, 2025 at 11:13 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -17,9 +17,6 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
-
-CREATE DATABASE IF NOT EXISTS `hrdatabase`;
-USE `hrdatabase`;
 --
 -- Database: `hrdatabase`
 --
@@ -184,6 +181,29 @@ INSERT INTO `employee_course_demonstrations` (`id`, `user_id`, `course_name`, `p
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `job_applications`
+--
+
+CREATE TABLE `job_applications` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `cover_letter` text DEFAULT NULL,
+  `cv_url` varchar(255) DEFAULT NULL,
+  `status` enum('Pending','Reviewed','Accepted','Rejected') DEFAULT 'Pending',
+  `submitted_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `job_title` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `job_applications`
+--
+
+INSERT INTO `job_applications` (`id`, `user_id`, `cover_letter`, `cv_url`, `status`, `submitted_at`, `job_title`) VALUES
+(3, 5, 'I want this job', '/uploads/cvs/5_1750449754_Employee_Compass_Add-ins.docx', 'Pending', '2025-06-20 20:02:34', 'Devops Job ');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `job_opportunities`
 --
 
@@ -207,6 +227,32 @@ CREATE TABLE `job_required_skills` (
   `job_id` int(11) NOT NULL,
   `skill_name` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `leave_requests`
+--
+
+CREATE TABLE `leave_requests` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `type` varchar(50) NOT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date NOT NULL,
+  `reason` text DEFAULT NULL,
+  `status` enum('Pending','Approved','Rejected') DEFAULT 'Pending',
+  `response` text DEFAULT NULL,
+  `submitted_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `leave_requests`
+--
+
+INSERT INTO `leave_requests` (`id`, `user_id`, `type`, `start_date`, `end_date`, `reason`, `status`, `response`, `submitted_at`) VALUES
+(1, 5, 'Sick', '2025-06-27', '2025-06-30', 'Let me leave boy ', 'Rejected', NULL, '2025-06-20 18:37:21'),
+(2, 5, 'Sick', '2025-07-16', '2025-07-23', 'uiwruiwrh', 'Approved', NULL, '2025-06-20 18:37:59');
 
 -- --------------------------------------------------------
 
@@ -336,7 +382,7 @@ INSERT INTO `login_sessions` (`id`, `user_id`, `user_agent`, `ip_address`, `logi
 (106, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-23 17:25:14', NULL, 0),
 (107, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-23 17:25:50', NULL, 0),
 (108, 8, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-23 17:30:30', NULL, 0),
-(109, 9, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-23 17:31:47', NULL, 1),
+(109, 9, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-23 17:31:47', NULL, 0),
 (110, 6, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-23 17:32:39', NULL, 0),
 (111, 8, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-23 17:33:15', NULL, 0),
 (112, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-23 17:45:10', NULL, 0),
@@ -416,14 +462,50 @@ INSERT INTO `login_sessions` (`id`, `user_id`, `user_agent`, `ip_address`, `logi
 (186, 23, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:11:13', NULL, 0),
 (187, 23, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:19:37', NULL, 1),
 (188, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:22:38', NULL, 0),
-(189, 6, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:23:04', NULL, 1),
+(189, 6, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:23:04', NULL, 0),
 (190, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:27:06', NULL, 0),
 (191, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:39:29', NULL, 0),
 (192, 7, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:58:36', NULL, 1),
 (193, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 17:59:18', NULL, 0),
-(194, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 19:00:58', NULL, 1),
-(195, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 19:02:37', NULL, 1),
-(196, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 19:08:10', NULL, 1);
+(194, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 19:00:58', NULL, 0),
+(195, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 19:02:37', NULL, 0),
+(196, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-05-28 19:08:10', NULL, 0),
+(197, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-04 19:25:03', NULL, 0),
+(198, 6, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-04 19:26:50', NULL, 0),
+(199, 9, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-04 19:27:48', NULL, 1),
+(200, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-06 21:03:39', NULL, 0),
+(201, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-06 21:04:23', NULL, 0),
+(202, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-06 21:05:04', NULL, 0),
+(203, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 14:51:49', NULL, 0),
+(204, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 14:52:32', NULL, 0),
+(205, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 15:03:02', NULL, 0),
+(206, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 15:16:30', NULL, 0),
+(207, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 15:56:10', NULL, 0),
+(208, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 16:31:13', NULL, 0),
+(209, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 16:33:17', NULL, 0),
+(210, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 17:59:48', NULL, 0),
+(211, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 18:01:53', NULL, 0),
+(212, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 18:12:41', NULL, 0),
+(213, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 18:32:10', NULL, 0),
+(214, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 18:32:53', NULL, 0),
+(215, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 18:34:10', NULL, 0),
+(216, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 18:34:51', NULL, 0),
+(217, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 18:44:32', NULL, 0),
+(218, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 18:56:09', NULL, 0),
+(219, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 19:16:00', NULL, 0),
+(220, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 19:33:03', NULL, 0),
+(221, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 19:33:41', NULL, 0),
+(222, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 19:34:26', NULL, 0),
+(223, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 19:56:23', NULL, 0),
+(224, 1, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 20:01:00', NULL, 1),
+(225, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 20:01:44', NULL, 0),
+(226, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 20:40:27', NULL, 0),
+(227, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 20:43:08', NULL, 0),
+(228, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 20:52:19', NULL, 0),
+(229, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 20:57:29', NULL, 1),
+(230, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 21:00:36', NULL, 0),
+(231, 6, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 21:02:27', NULL, 1),
+(232, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', '127.0.0.1', '2025-06-20 21:03:08', NULL, 1);
 
 -- --------------------------------------------------------
 
@@ -447,7 +529,6 @@ CREATE TABLE `notifications` (
 --
 
 INSERT INTO `notifications` (`id`, `title`, `message`, `user_id`, `is_read`, `type`, `link`, `created_at`) VALUES
-(1, 'dfihweifu', 'wedhiwe wefwniefn wefw ofiwje fw ofjwe fiojwef', '1', 0, 'job', NULL, '2025-05-19 15:25:16'),
 (2, 'New Task Assigned', 'You have been assigned a new task', '1', 0, 'task', '/tasks/1', '2025-05-23 19:09:45'),
 (3, 'Course Completed', 'Congratulations on completing the course!', '2', 0, 'course', '/courses/2', '2025-05-23 19:09:45'),
 (4, 'Deadline Reminder', 'Task deadline is approaching', '3', 0, 'task', '/tasks/3', '2025-05-23 19:09:45'),
@@ -455,11 +536,56 @@ INSERT INTO `notifications` (`id`, `title`, `message`, `user_id`, `is_read`, `ty
 (6, 'Task Update', 'Task status has been updated', '5', 0, 'task', '/tasks/5', '2025-05-23 19:09:45'),
 (7, 'Achievement Unlocked', 'You have earned a new achievement', '6', 0, '', '/profile', '2025-05-23 19:09:45'),
 (8, 'Team Meeting', 'Team meeting scheduled for tomorrow', '7', 0, '', '/calendar', '2025-05-23 19:09:45'),
-(9, 'Performance Review', 'Your performance review is due', '8', 0, '', '/reviews', '2025-05-23 19:09:45'),
 (10, 'Course Progress', 'You are 90% complete with your course', '1', 0, 'course', '/courses/9', '2025-05-23 19:09:45'),
 (11, 'Task Completed', 'Great job on completing the task!', '2', 0, 'task', '/tasks/10', '2025-05-23 19:09:45'),
 (12, 'new message', 'Take care guys', '1', 0, 'course', NULL, '2025-05-23 20:19:17'),
 (13, 'A new job for you guys', 'We have a new role for backend engineers', '1', 0, 'job', NULL, '2025-05-24 20:19:34');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `quizzes`
+--
+
+CREATE TABLE `quizzes` (
+  `id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `file_url` varchar(255) NOT NULL,
+  `uploaded_by` int(11) NOT NULL,
+  `department` varchar(100) DEFAULT NULL,
+  `assigned_to` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `quizzes`
+--
+
+INSERT INTO `quizzes` (`id`, `title`, `description`, `file_url`, `uploaded_by`, `department`, `assigned_to`, `created_at`) VALUES
+(1, 'Quiz One ', 'TestPassword123!', '/uploads/quizzes/1750452872_Employee_Compass_Add-ins.docx', 3, 'Finance', 5, '2025-06-20 20:54:32'),
+(2, 'TestPassword123!', 'TestPassword123!', '/uploads/quizzes/1750453419_Employee_Compass_Add-ins.docx', 3, 'Finance', 5, '2025-06-20 21:03:39');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `quiz_submissions`
+--
+
+CREATE TABLE `quiz_submissions` (
+  `id` int(11) NOT NULL,
+  `quiz_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `file_url` varchar(255) NOT NULL,
+  `submitted_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `quiz_submissions`
+--
+
+INSERT INTO `quiz_submissions` (`id`, `quiz_id`, `user_id`, `file_url`, `submitted_at`) VALUES
+(1, 1, 5, '/uploads/quiz_submissions/1_5_1750453208_Employee_Compass_Add-ins.docx', '2025-06-20 21:00:08');
 
 -- --------------------------------------------------------
 
@@ -499,11 +625,10 @@ CREATE TABLE `tasks` (
 --
 
 INSERT INTO `tasks` (`id`, `title`, `description`, `documentation`, `assigned_to`, `assigned_by`, `status`, `progress`, `deadline`, `created_at`, `updated_at`) VALUES
-(3, 'cdhsuicdhsd', 'sdihcidhsd', 'In progress', 5, 3, 'In Progress', 52, '2025-05-19 20:57:42', '2025-05-19 20:49:43', '2025-05-19 20:57:42'),
+(3, 'cdhsuicdhsd', 'sdihcidhsd', 'In progress', 5, 3, 'Todo', 12, '2025-06-20 20:02:05', '2025-05-19 20:49:43', '2025-06-20 20:02:05'),
 (24, 'Implement New Authentication System', 'Upgrade the current authentication system to use OAuth 2.0', 'I am done with the documentation', 10, 2, 'Completed', 92, '2025-05-24 20:47:26', '2025-05-20 08:00:00', '2025-05-24 20:47:26'),
 (25, 'Database Optimization', 'Optimize database queries and indexes for better performance', 'https://docs.example.com/db-optimization', 11, 2, 'Todo', 0, '2025-06-19 22:00:00', '2025-05-20 08:00:00', '2025-05-20 08:00:00'),
 (26, 'Q2 Financial Report Preparation', 'Prepare detailed financial reports for Q2 2025', 'https://docs.example.com/q2-reports', 5, 3, 'Completed', 100, '2025-05-28 19:01:20', '2025-05-20 08:00:00', '2025-05-28 19:01:20'),
-(27, 'Budget Review Meeting', 'Review and analyze department budgets for next quarter', 'https://docs.example.com/budget-review', 5, 3, 'Todo', 47, '2025-05-27 15:52:46', '2025-05-20 08:00:00', '2025-05-27 15:52:46'),
 (28, 'New Product Launch Strategy', 'Develop marketing and sales strategy for new product launch', 'https://docs.example.com/product-launch', 7, 6, 'In Progress', 60, '2025-06-24 22:00:00', '2025-05-20 08:00:00', '2025-05-20 08:00:00'),
 (29, 'Customer Feedback Analysis', 'Analyze and compile customer feedback from recent surveys', 'https://docs.example.com/feedback-analysis', 7, 6, 'Todo', 0, '2025-06-14 22:00:00', '2025-05-20 08:00:00', '2025-05-20 08:00:00'),
 (30, 'Service Quality Improvement', 'Implement new customer service quality metrics', 'https://docs.example.com/service-quality', 9, 8, 'In Progress', 30, '2025-06-29 22:00:00', '2025-05-20 08:00:00', '2025-05-20 08:00:00'),
@@ -542,7 +667,7 @@ INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `department
 (1, 'John Jerry', 'admin@gmail.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Admin', 'IT', '234-567-8901', 'Advanced', 5, 1, 'I am the main system Administrator', '', 1, '2025-05-14 15:00:59', '2025-05-24 20:29:36'),
 (2, 'Jill Wagner Joe', 'jillwagner@gmail.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'TeamLeader', 'IT', '+250123456789', 'Intermediate', 4, 4, 'IT Team Leader', NULL, 1, '2025-05-14 15:00:59', '2025-05-26 19:02:34'),
 (3, 'Fina Niicer', 'teamlead.finance@hrms.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'TeamLeader', 'Finance', '234-567-8901', 'Advanced', 4, 2, 'Finance Team Leaders', NULL, 1, '2025-05-14 15:00:59', '2025-05-28 17:00:08'),
-(5, 'Jerry Jane', 'employee.finance@hrms.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'Finance', '+1234567893', 'Intermediate', 2, 1, 'Finance Department Employee', NULL, 1, '2025-05-14 15:00:59', '2025-05-22 19:15:25'),
+(5, 'Jerry Jane', 'employee.finance@hrms.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'Finance', '+1234567893', 'Advanced', 2, 1, 'Finance Department Employee', NULL, 1, '2025-05-14 15:00:59', '2025-06-20 16:10:09'),
 (6, 'Team Leader Sales', 'teamlead.sales@hrms.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'TeamLeader', 'Sales', '+1234567895', 'Advanced', 4, 2, 'Sales Team Leader', NULL, 1, '2025-05-14 15:06:17', '2025-05-19 15:56:57'),
 (7, 'Sales Employee', 'employee.sales@hrms.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'Sales', '+1234567896', 'Intermediate', 2, 1, 'Sales Department Employee', NULL, 1, '2025-05-14 15:06:17', '2025-05-19 15:57:09'),
 (8, 'Team Leader Customer-Service', 'teamlead.customerservice@hrms.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'TeamLeader', 'Customer-Service', '+1234567897', 'Advanced', 4, 2, 'Customer Service Team Leader', NULL, 1, '2025-05-14 15:06:17', '2025-05-19 15:59:33'),
@@ -552,9 +677,9 @@ INSERT INTO `users` (`id`, `name`, `email`, `password_hash`, `role`, `department
 (14, 'Jill Wagner Joe', 'teamlead.iTt@hrms.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'TeamLeader', 'IT', '+250123456789', 'Intermediate', 4, 4, 'IT Team Leader', NULL, 1, '2025-05-14 15:00:59', '2025-05-15 19:29:02'),
 (15, 'John Smith', 'john.smith@company.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'IT', '+1234567890', 'Intermediate', 3, 2, 'Full-stack developer with React and Node.js experience', NULL, 1, '2025-05-23 19:05:36', '2025-05-23 19:05:36'),
 (16, 'Sarah Johnson', 'sarah.j@company.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'Finance', '+1234567891', '', 5, 3, 'Financial analyst with expertise in risk management', NULL, 1, '2025-05-23 19:05:36', '2025-05-23 19:05:36'),
-(17, 'Mike Wilson', 'mike.w@company.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'Sales', '+1234567892', '', 1, 1, 'Sales representative with strong communication skills', NULL, 1, '2025-05-23 19:05:36', '2025-05-23 19:05:36'),
+(17, 'Mike Wilson', 'mike.w@company.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'Sales', '+1234567892', 'Advanced', 1, 1, 'Sales representative with strong communication skills', NULL, 1, '2025-05-23 19:05:36', '2025-06-20 16:06:45'),
 (18, 'Lisa Brown', 'lisa.b@company.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'Customer-Service', '+1234567893', 'Intermediate', 2, 2, 'Customer service specialist with 2 years experience', NULL, 1, '2025-05-23 19:05:36', '2025-05-23 19:05:36'),
-(19, 'David Lee', 'david.l@company.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'IT', '+1234567894', '', 4, 3, 'Backend developer with Python and Django expertise', NULL, 1, '2025-05-23 19:05:36', '2025-05-23 19:05:36'),
+(19, 'David Lee', 'david.l@company.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'IT', '+1234567894', 'Intermediate', 4, 3, 'Backend developer with Python and Django expertise', NULL, 1, '2025-05-23 19:05:36', '2025-06-20 16:00:41'),
 (20, 'Emma Davis', 'emma.d@company.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'Finance', '+1234567895', 'Intermediate', 2, 2, 'Accountant with CPA certification', NULL, 1, '2025-05-23 19:05:36', '2025-05-23 19:05:36'),
 (21, 'James Wilson', 'james.w@company.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'Sales', '+1234567896', '', 6, 3, 'Sales manager with proven track record', NULL, 1, '2025-05-23 19:05:36', '2025-05-23 19:05:36'),
 (22, 'Maria Garcia', 'maria.g@company.com', 'pbkdf2:sha256:260000$HF57NjLd4YqjVLdX$881d2d8a603a95ef841baf58d859b48d9cc7895e51c809e5672f1a720aa22217', 'Employee', 'Customer-Service', '+1234567897', '', 1, 1, 'Customer support representative', NULL, 1, '2025-05-23 19:05:36', '2025-05-23 19:05:36'),
@@ -573,33 +698,6 @@ CREATE TABLE `user_skills` (
   `skill_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-
--- Job Applications
-CREATE TABLE IF NOT EXISTS job_applications (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  job_id INT NOT NULL,
-  user_id INT NOT NULL,
-  cover_letter TEXT,
-  cv_url VARCHAR(255),
-  status ENUM('Pending','Reviewed','Accepted','Rejected') DEFAULT 'Pending',
-  submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (job_id) REFERENCES job_opportunities(id) ON DELETE CASCADE,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Leave Requests
-CREATE TABLE IF NOT EXISTS leave_requests (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  type VARCHAR(50) NOT NULL,
-  start_date DATE NOT NULL,
-  end_date DATE NOT NULL,
-  reason TEXT,
-  status ENUM('Pending','Approved','Rejected') DEFAULT 'Pending',
-  response TEXT,
-  submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
 --
 -- Indexes for dumped tables
 --
@@ -672,6 +770,13 @@ ALTER TABLE `employee_course_demonstrations`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indexes for table `job_applications`
+--
+ALTER TABLE `job_applications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
 -- Indexes for table `job_opportunities`
 --
 ALTER TABLE `job_opportunities`
@@ -683,6 +788,13 @@ ALTER TABLE `job_opportunities`
 --
 ALTER TABLE `job_required_skills`
   ADD PRIMARY KEY (`job_id`,`skill_name`);
+
+--
+-- Indexes for table `leave_requests`
+--
+ALTER TABLE `leave_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `login_sessions`
@@ -699,6 +811,22 @@ ALTER TABLE `notifications`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_notifications_user_id` (`user_id`),
   ADD KEY `idx_notifications_created_at` (`created_at`);
+
+--
+-- Indexes for table `quizzes`
+--
+ALTER TABLE `quizzes`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `uploaded_by` (`uploaded_by`),
+  ADD KEY `assigned_to` (`assigned_to`);
+
+--
+-- Indexes for table `quiz_submissions`
+--
+ALTER TABLE `quiz_submissions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `quiz_id` (`quiz_id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `skills`
@@ -786,22 +914,46 @@ ALTER TABLE `employee_course_demonstrations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
+-- AUTO_INCREMENT for table `job_applications`
+--
+ALTER TABLE `job_applications`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT for table `job_opportunities`
 --
 ALTER TABLE `job_opportunities`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `leave_requests`
+--
+ALTER TABLE `leave_requests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
 -- AUTO_INCREMENT for table `login_sessions`
 --
 ALTER TABLE `login_sessions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=197;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=233;
 
 --
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+
+--
+-- AUTO_INCREMENT for table `quizzes`
+--
+ALTER TABLE `quizzes`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `quiz_submissions`
+--
+ALTER TABLE `quiz_submissions`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `skills`
@@ -879,6 +1031,12 @@ ALTER TABLE `employee_course_demonstrations`
   ADD CONSTRAINT `employee_course_demonstrations_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `job_applications`
+--
+ALTER TABLE `job_applications`
+  ADD CONSTRAINT `job_applications_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `job_opportunities`
 --
 ALTER TABLE `job_opportunities`
@@ -891,10 +1049,30 @@ ALTER TABLE `job_required_skills`
   ADD CONSTRAINT `job_required_skills_ibfk_1` FOREIGN KEY (`job_id`) REFERENCES `job_opportunities` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `leave_requests`
+--
+ALTER TABLE `leave_requests`
+  ADD CONSTRAINT `leave_requests_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `login_sessions`
 --
 ALTER TABLE `login_sessions`
   ADD CONSTRAINT `login_sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `quizzes`
+--
+ALTER TABLE `quizzes`
+  ADD CONSTRAINT `quizzes_ibfk_1` FOREIGN KEY (`uploaded_by`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `quizzes_ibfk_2` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `quiz_submissions`
+--
+ALTER TABLE `quiz_submissions`
+  ADD CONSTRAINT `quiz_submissions_ibfk_1` FOREIGN KEY (`quiz_id`) REFERENCES `quizzes` (`id`),
+  ADD CONSTRAINT `quiz_submissions_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 --
 -- Constraints for table `tasks`
