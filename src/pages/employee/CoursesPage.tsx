@@ -187,20 +187,28 @@ export default function CoursesPage() {
   );
 
   const handleEnroll = async (courseId: string) => {
-    try {
+  try {
+    const isEnrolled = enrolledCourses.some(course => course.id === courseId);
+    if (isEnrolled) {
+      setActiveTab("enrolled");
+    } else {
+      // Enroll in the course if not already enrolled
       await enrollInCourse(courseId, currentUser.id);
       toast({
         title: "Enrolled Successfully",
         description: "You have been enrolled in the course.",
       });
-    } catch (error) {
-      toast({
-        title: "Enrollment Failed",
-        description: "There was an error enrolling in the course.",
-        variant: "destructive",
-      });
+      // Optionally switch to the enrolled tab after enrolling
+      setActiveTab("enrolled");
     }
-  };
+  } catch (error) {
+    toast({
+      title: "Enrollment Failed",
+      description: "There was an error enrolling in the course.",
+      variant: "destructive",
+    });
+  }
+};
 
   const handleDemonstrationSubmit = async (e) => {
     e.preventDefault();
@@ -275,115 +283,116 @@ export default function CoursesPage() {
         </TabsList>
         
         <TabsContent value="available" className="mt-6">
-          {departmentTutorials.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6 text-center py-10">
-                <BookOpenCheck className="h-12 w-12 mx-auto text-muted-foreground" />
-                <p className="mt-4 text-muted-foreground">
-                  No tutorials available for your department.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {departmentTutorials.map(tutorial => {
-                const isEnrolled = enrolledCourses.some(course => course.id === tutorial.id);
-                const progress = isEnrolled ? (videoProgress[tutorial.id] || 0) : 0;
-                
-                return (
-                  <Card key={tutorial.id} className="flex flex-col">
-                    <div className="aspect-video w-full bg-muted relative">
-                      {tutorial.thumbnailUrl ? (
-                      <img
-                          src={tutorial.thumbnailUrl}
-                          alt={tutorial.title}
-                        className="object-cover w-full h-full"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                          <Youtube className="h-12 w-12 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="secondary" 
-                              className="rounded-full h-14 w-14"
-                              onClick={() => setSelectedCourse({
-                                id: tutorial.id,
-                                title: tutorial.title,
-                                description: tutorial.description,
-                                department: tutorial.department,
-                                videoUrl: tutorial.videoUrl,
-                                thumbnailUrl: tutorial.thumbnailUrl,
-                                duration: tutorial.duration,
-                                progress: progress
-                              })}
-                            >
-                              <Play className="h-6 w-6" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl h-[80vh]">
-                            <DialogHeader>
-                              <DialogTitle>{tutorial.title}</DialogTitle>
-                              <DialogDescription>
-                                {tutorial.description}
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="mt-4 aspect-video w-full bg-black">
-                              <iframe 
-                                ref={videoRef}
-                                src={`${tutorial.videoUrl}?enablejsapi=1&origin=${window.location.origin}`}
-                                frameBorder="0" 
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                allowFullScreen
-                                className="w-full h-full"
-                              ></iframe>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                  </div>
-                  <CardHeader className="pb-2">
-                      <CardTitle className="text-xl">{tutorial.title}</CardTitle>
-                    <CardDescription>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary">{tutorial.difficulty}</Badge>
-                          <span className="text-sm text-muted-foreground">{tutorial.duration}</span>
-                        </div>
-                        {isEnrolled && (
-                          <div className="mt-2">
-                            <div className="flex justify-between items-center">
-                              <span>Progress: {progress}%</span>
-                              <Badge variant="default">
-                                {progress === 100 ? "Completed" : "In Progress"}
-                              </Badge>
-                            </div>
-                            <Progress value={progress} className="h-2 mt-2" />
-                          </div>
-                        )}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-1">
-                    <p className="text-sm text-muted-foreground">
-                        {tutorial.description}
-                    </p>
-                  </CardContent>
-                  <CardFooter className="pt-0">
-                      <Button 
-                        className="w-full" 
-                        onClick={() => handleEnroll(tutorial.id)}
-                      >
-                        {isEnrolled ? 'Continue Learning' : 'Enroll Now'}
+  {departmentTutorials.length === 0 ? (
+    <Card>
+      <CardContent className="pt-6 text-center py-10">
+        <BookOpenCheck className="h-12 w-12 mx-auto text-muted-foreground" />
+        <p className="mt-4 text-muted-foreground">
+          No tutorials available for your department.
+        </p>
+      </CardContent>
+    </Card>
+  ) : (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {departmentTutorials.map(tutorial => {
+        const isEnrolled = enrolledCourses.some(course => course.id === tutorial.id);
+        const progress = isEnrolled ? (videoProgress[tutorial.id] || 0) : 0;
+        
+        return (
+          <Card key={tutorial.id} className="flex flex-col">
+            <div className="aspect-video w-full bg-muted relative">
+              {tutorial.thumbnailUrl ? (
+                <img
+                  src={tutorial.thumbnailUrl}
+                  alt={tutorial.title}
+                  className="object-cover w-full h-full"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Youtube className="h-12 w-12 text-muted-foreground" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="secondary" 
+                      className="rounded-full h-14 w-14"
+                      onClick={() => setSelectedCourse({
+                        id: tutorial.id,
+                        title: tutorial.title,
+                        description: tutorial.description,
+                        department: tutorial.department,
+                        videoUrl: tutorial.videoUrl,
+                        thumbnailUrl: tutorial.thumbnailUrl,
+                        duration: tutorial.duration,
+                        progress: progress
+                      })}
+                    >
+                      <Play className="h-6 w-6" />
                     </Button>
-                  </CardFooter>
-                </Card>
-                );
-              })}
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+                    <DialogHeader>
+                      <DialogTitle>{tutorial.title}</DialogTitle>
+                      <DialogDescription>
+                        {tutorial.description}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-4 flex-1 bg-black overflow-hidden">
+                      <iframe 
+                        ref={videoRef}
+                        src={tutorial.videoUrl + '?enablejsapi=1'} // Remove dynamic origin
+                        frameBorder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowFullScreen
+                        className="w-full h-full"
+                        style={{ aspectRatio: '16/9' }} // Ensures proper aspect ratio
+                      ></iframe>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
-          )}
-        </TabsContent>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xl">{tutorial.title}</CardTitle>
+              <CardDescription>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="secondary">{tutorial.difficulty}</Badge>
+                  <span className="text-sm text-muted-foreground">{tutorial.duration}</span>
+                </div>
+                {isEnrolled && (
+                  <div className="mt-2">
+                    <div className="flex justify-between items-center">
+                      <span>Progress: {progress}%</span>
+                      <Badge variant="default">
+                        {progress === 100 ? "Completed" : "In Progress"}
+                      </Badge>
+                    </div>
+                    <Progress value={progress} className="h-2 mt-2" />
+                  </div>
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1">
+              <p className="text-sm text-muted-foreground">
+                {tutorial.description}
+              </p>
+            </CardContent>
+            <CardFooter className="pt-0">
+              <Button 
+                className="w-full" 
+                onClick={() => handleEnroll(tutorial.id)}
+              >
+                {isEnrolled ? 'Continue Learning' : 'Enroll Now'}
+              </Button>
+            </CardFooter>
+          </Card>
+        );
+      })}
+    </div>
+  )}
+</TabsContent>
         
         <TabsContent value="enrolled" className="mt-6">
           <Card className="mb-6">

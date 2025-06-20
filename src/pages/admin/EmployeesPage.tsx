@@ -321,38 +321,40 @@ const EmployeesPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center">
-        <h2 className="text-3xl font-bold">Employees Management</h2>
+      <div className="flex flex-row justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold">Employees Management</h2>
+        </div>
         <div className="pl-[340px]">
-        <Button onClick={() => setIsAddDialogOpen(true)} className="sm:w-auto w-full">
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add Employee
-        </Button>
-        <Button
-          variant="outline"
-          className="sm:w-auto w-full ml-2"
-          onClick={async () => {
-            const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:5000/api/admin/export-employees-pdf', {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-              const blob = await res.blob();
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = 'employees.pdf';
-              document.body.appendChild(a);
-              a.click();
-              a.remove();
-              window.URL.revokeObjectURL(url);
-            } else {
-              alert('Failed to download PDF');
-            }
-          }}
-        >
-          Print Employees PDF
-        </Button>
+          <Button onClick={() => setIsAddDialogOpen(true)} className="sm:w-auto w-full">
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add Employee
+          </Button>
+          <Button
+            variant="outline"
+            className="sm:w-auto w-full ml-2"
+            onClick={async () => {
+              const token = localStorage.getItem('token');
+              const res = await fetch('http://localhost:5000/api/admin/export-employees-pdf', {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (res.ok) {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'employees.pdf';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+              } else {
+                alert('Failed to download PDF');
+              }
+            }}
+          >
+            Print Employees PDF
+          </Button>
         </div>
       </div>
 
