@@ -10,7 +10,6 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
-import PresentationPage from "./pages/PresentationPage";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -47,7 +46,6 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/presentation" element={<PresentationPage />} />
               
               {/* Admin Routes */}
               <Route path="/admin" element={<MainLayout />}>
