@@ -10,9 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import emailjs from 'emailjs-com';
 
 // EmailJS Credentials from the previous setup
-const EMAILJS_SERVICE_ID = 'service_igz6o0i';
-const EMAILJS_TEMPLATE_ID = 'template_0yx40dq';
-const EMAILJS_PUBLIC_KEY = '78ZWX-IRTvsxuxjtd';
+const EMAILJS_SERVICE_ID = 'service_0e1z3s7';
+const EMAILJS_TEMPLATE_ID = 'template_jnazhhl';
+const EMAILJS_PUBLIC_KEY = 'tGRi8knjy79KBbUab';
 
 export default function EmailPage() {
   const { currentUser } = useAppContext();

@@ -67,7 +67,7 @@ export function Header({ onToggleSidebar }: HeaderProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <h1 className="text-lg font-semibold">HR Evaluation Management System</h1>
+        <h1 className="text-lg font-semibold">Employee Capability Management System</h1>
       </div>
 
       <div className="flex items-center space-x-2">

@@ -80,7 +80,7 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-      <p className="text-muted-foreground">Overview of the HR Evaluation Management System</p>
+      <p className="text-muted-foreground">Overview of the Employee Capability Management System</p>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
