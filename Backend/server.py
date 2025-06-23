@@ -72,6 +72,9 @@ os.makedirs(QUIZ_SUBMISSION_FOLDER, exist_ok=True)
 QUIZ_UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'quizzes')
 os.makedirs(QUIZ_UPLOAD_FOLDER, exist_ok=True)
 
+TASK_DOCUMENTS_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'task_documents')
+os.makedirs(TASK_DOCUMENTS_FOLDER, exist_ok=True)
+
 # Database configuration
 db_config = {
     'host': os.getenv('DB_HOST', 'localhost'),
@@ -1374,7 +1377,7 @@ def submit_course_demonstration(current_user_id):
 @app.route('/api/tasks', methods=['POST'])
 @token_required
 def create_task(current_user_id):
-    """Create a new task with department-based access control"""
+    """Create a new task with department-based access control and file upload support"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -1390,7 +1393,30 @@ def create_task(current_user_id):
         if current_user['role'] not in ['TeamLeader', 'Admin']:
             return jsonify({'error': 'Only team leaders and admins can create tasks'}), 403
 
-        data = request.get_json()
+        # Handle both JSON and form data
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            # Handle file upload
+            data = request.form
+            document_url = None
+            
+            # Handle file upload
+            if 'document' in request.files and request.files['document'].filename != '':
+                document = request.files['document']
+                filename = secure_filename(document.filename)
+                timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_filename = f"{timestamp}_{filename}"
+                filepath = os.path.join(TASK_DOCUMENTS_FOLDER, unique_filename)
+                try:
+                    document.save(filepath)
+                    document_url = f"/uploads/task_documents/{unique_filename}"
+                except Exception as e:
+                    logger.error(f"Error saving file: {str(e)}")
+                    return jsonify({'error': 'Error saving file'}), 500
+        else:
+            # Handle JSON data
+            data = request.get_json()
+            document_url = None
+
         required_fields = ['title', 'description', 'assignedTo', 'deadline']
         
         if not all(field in data for field in required_fields):
@@ -1425,8 +1451,8 @@ def create_task(current_user_id):
 
         # Create the task
         cursor.execute('''
-            INSERT INTO tasks (title, description, assigned_to, assigned_by, status, deadline, progress)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO tasks (title, description, assigned_to, assigned_by, status, deadline, progress, document_url)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             data['title'],
             data['description'],
@@ -1434,7 +1460,8 @@ def create_task(current_user_id):
             current_user_id,
             'Todo',
             data['deadline'],
-            data.get('progress', 0)
+            data.get('progress', 0),
+            document_url
         ))
         conn.commit()
 
@@ -2833,10 +2860,11 @@ def serve_quiz_file(filename):
 
 @app.route('/uploads/quiz_submissions/<filename>')
 def serve_quiz_submission_file(filename):
-    submission_path = os.path.join(QUIZ_SUBMISSION_FOLDER, filename)
-    if not os.path.exists(submission_path):
-        return jsonify({'error': 'File not found'}), 404
-    return send_file(submission_path, as_attachment=True)
+    return send_file(os.path.join(QUIZ_SUBMISSION_FOLDER, filename))
+
+@app.route('/uploads/task_documents/<filename>')
+def serve_task_document(filename):
+    return send_file(os.path.join(TASK_DOCUMENTS_FOLDER, filename))
 
 @app.route('/api/users/<int:user_id>/cv', methods=['GET'])
 @token_required

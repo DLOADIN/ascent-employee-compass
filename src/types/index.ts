@@ -27,12 +27,13 @@ export interface Skill {
 }
 
 export interface Task {
-  id: string;
+  id: number;
   title: string;
   description: string;
   documentation?: string;
-  assignedTo: number;
-  assignedBy: number;
+  document_url?: string;
+  assignedTo: string;
+  assignedBy: string;
   assigned_to_name?: string;
   assigned_to_email?: string;
   assigned_to_department?: string;

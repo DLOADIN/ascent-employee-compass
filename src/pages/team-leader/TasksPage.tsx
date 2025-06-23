@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, PlusIcon, FileText, Clock, CheckCircle } from "lucide-react";
+import { CalendarIcon, PlusIcon, FileText, Clock, CheckCircle, X, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -38,6 +38,7 @@ export default function TeamLeaderTasksPage() {
   const [teamTasks, setTeamTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [membersProgress, setMembersProgress] = useState([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const fetchTasks = async () => {
     try {
@@ -166,20 +167,26 @@ export default function TeamLeaderTasksPage() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No authentication token found');
 
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('title', data.title);
+      formData.append('description', data.description);
+      formData.append('assignedTo', data.assignedTo);
+      formData.append('deadline', data.deadline.toISOString());
+      formData.append('status', 'Todo');
+      formData.append('progress', '0');
+
+      // Add file if selected
+      if (selectedFile) {
+        formData.append('document', selectedFile);
+      }
+
       const response = await fetch(`${API_URL}/tasks`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          title: data.title,
-          description: data.description,
-          assignedTo: data.assignedTo,
-          deadline: data.deadline.toISOString(),
-          status: "Todo",
-          progress: 0
-        })
+        body: formData
       });
 
       if (!response.ok) {
@@ -195,6 +202,7 @@ export default function TeamLeaderTasksPage() {
       });
       setIsDialogOpen(false);
       form.reset();
+      setSelectedFile(null);
     } catch (error) {
       console.error('Error creating task:', error);
       toast({
@@ -210,7 +218,7 @@ export default function TeamLeaderTasksPage() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No authentication token found');
 
-      const response = await fetch(`${API_URL}/tasks/${updatedTask.id}`, {
+      const response = await fetch(`${API_URL}/tasks/${updatedTask.id.toString()}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -261,7 +269,7 @@ export default function TeamLeaderTasksPage() {
         throw new Error('Failed to delete task');
       }
 
-      setTeamTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+      setTeamTasks(prevTasks => prevTasks.filter(task => task.id !== parseInt(taskId)));
 
       toast({
         title: "Success",
@@ -394,6 +402,36 @@ export default function TeamLeaderTasksPage() {
                     </FormItem>
                   )}
                 />
+                <FormItem>
+                  <FormLabel>Attach Document (Optional)</FormLabel>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                        className="flex-1"
+                      />
+                      {selectedFile && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedFile(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {selectedFile && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Upload className="h-4 w-4" />
+                        <span>{selectedFile.name}</span>
+                        <span>({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</span>
+                      </div>
+                    )}
+                  </div>
+                </FormItem>
                <DialogFooter>
                    <Button type="submit">Create Task</Button> 
                 </DialogFooter>

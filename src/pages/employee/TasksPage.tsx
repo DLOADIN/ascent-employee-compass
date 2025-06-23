@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Task } from "@/types";
+import { Task } from "@/types/index";
 import { useAppContext } from "@/context/AppContext";
 import { TaskBoard } from "@/components/tasks/TaskBoard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -134,7 +134,7 @@ export default function TasksPage() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No authentication token found');
 
-      const response = await fetch(`${API_URL}/tasks/${selectedTask.id}/progress`, {
+      const response = await fetch(`${API_URL}/tasks/${selectedTask.id.toString()}/progress`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

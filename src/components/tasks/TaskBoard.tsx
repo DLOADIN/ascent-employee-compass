@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { CalendarIcon, Clock, CheckCircle, AlertCircle, MoreVertical, Trash2 } from "lucide-react";
+import { CalendarIcon, Clock, CheckCircle, AlertCircle, MoreVertical, Trash2, FileText, Download } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -240,7 +240,7 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
                 {canEdit && onDelete && (
                   <DropdownMenuItem 
                     className="text-destructive"
-                    onClick={() => onDelete(task.id)}
+                    onClick={() => onDelete(task.id.toString())}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete Task
@@ -258,6 +258,26 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
             <div className="mb-4">
               <h4 className="text-sm font-medium mb-1">Documentation</h4>
               <p className="text-sm text-muted-foreground">{task.documentation}</p>
+            </div>
+          )}
+          {task.document_url && (
+            <div className="mb-4">
+              <h4 className="text-sm font-medium mb-1">Attached Document</h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const url = `http://localhost:5000${task.document_url}`;
+                  window.open(url, '_blank');
+                }}
+                className="w-full justify-start"
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                <span className="truncate">
+                  {task.document_url.split('/').pop() || 'Download Document'}
+                </span>
+                <Download className="ml-auto h-4 w-4" />
+              </Button>
             </div>
           )}
           <div className="space-y-2">
