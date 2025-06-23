@@ -17,7 +17,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Search, Edit, Trash2, UserCog } from "lucide-react";
+import { UserPlus, Search, Edit, Trash2, UserCog, FileText, Download, Eye, FileDown } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { Department, SkillLevel, User, UserRole } from "@/types";
 import { AddEmployeeDialog } from "@/components/admin/AddEmployeeDialog";
@@ -32,6 +32,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
 const skillLevelSchema = z.object({
   skillLevel: z.enum(["Beginner", "Intermediate", "Advanced"]),
@@ -53,6 +54,10 @@ const EmployeesPage = () => {
   const [departmentFilter, setDepartmentFilter] = useState<Department | "All">("All");
   const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false);
   const [skillDialogUser, setSkillDialogUser] = useState<User | null>(null);
+  const [isCvDialogOpen, setIsCvDialogOpen] = useState(false);
+  const [cvDialogUser, setCvDialogUser] = useState<User | null>(null);
+  const [cvData, setCvData] = useState<any>(null);
+  const [isLoadingCv, setIsLoadingCv] = useState(false);
 
   useEffect(() => {
     fetchEmployees();
@@ -78,7 +83,10 @@ const EmployeesPage = () => {
         experienceLevel: user.experience_level,
         description: user.description,
         profileImage: user.profile_image_url,
-        isActive: Boolean(user.is_active)
+        isActive: Boolean(user.is_active),
+        cvUrl: user.cv_url || undefined,
+        cvJobTitle: user.cv_job_title || undefined,
+        cvSubmittedAt: user.cv_submitted_at || undefined
       }));
 
       setEmployees(transformedUsers.filter(user => user.role === "Employee"));
@@ -141,7 +149,10 @@ const EmployeesPage = () => {
         experienceLevel: data.experience_level,
         description: data.description,
         profileImage: data.profile_image_url,
-        isActive: Boolean(data.is_active)
+        isActive: Boolean(data.is_active),
+        cvUrl: data.cv_url || undefined,
+        cvJobTitle: data.cv_job_title || undefined,
+        cvSubmittedAt: data.cv_submitted_at || undefined
       };
 
       setEmployees([...employees, transformedUser]);
@@ -194,7 +205,10 @@ const EmployeesPage = () => {
           experienceLevel: response.data.user.experience_level || 0,
           description: response.data.user.description || '',
           profileImage: response.data.user.profile_image_url || '',
-          isActive: Boolean(response.data.user.is_active)
+          isActive: Boolean(response.data.user.is_active),
+          cvUrl: response.data.user.cv_url || undefined,
+          cvJobTitle: response.data.user.cv_job_title || undefined,
+          cvSubmittedAt: response.data.user.cv_submitted_at || undefined
       };
 
         // Update the employees list immediately
@@ -354,6 +368,82 @@ const EmployeesPage = () => {
     }
   };
 
+  const handleViewCv = async (user: User) => {
+    try {
+      setIsLoadingCv(true);
+      setCvDialogUser(user);
+      setIsCvDialogOpen(true);
+      
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:5000/api/users/${user.id}/cv`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setCvData(response.data);
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        toast({
+          title: "No CV Found",
+          description: "This employee doesn't have a CV uploaded yet.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message || "Failed to fetch CV",
+          variant: "destructive",
+        });
+      }
+      setIsCvDialogOpen(false);
+    } finally {
+      setIsLoadingCv(false);
+    }
+  };
+
+  const handleDownloadCv = (cvUrl: string, employeeName: string) => {
+    const fullUrl = `http://localhost:5000${cvUrl}`;
+    const link = document.createElement('a');
+    link.href = fullUrl;
+    link.download = `${employeeName}_CV.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleGenerateReport = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/admin/export-employee-report-pdf', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'employee_report.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Success",
+          description: "Employee report generated and downloaded successfully",
+        });
+      } else {
+        throw new Error('Failed to generate report');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate employee report",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div>Loading employees...</div>;
   }
@@ -393,6 +483,14 @@ const EmployeesPage = () => {
             }}
           >
             Print Employees PDF
+          </Button>
+          <Button
+            variant="outline"
+            className="sm:w-auto w-full ml-2"
+            onClick={handleGenerateReport}
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Generate Report
           </Button>
         </div>
       </div>
@@ -453,6 +551,7 @@ const EmployeesPage = () => {
                   <TableHead className="hidden md:table-cell">Role</TableHead>
                   <TableHead className="hidden md:table-cell">Department</TableHead>
                   <TableHead className="hidden lg:table-cell">Skill Level</TableHead>
+                  <TableHead className="hidden lg:table-cell">CV</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -471,6 +570,25 @@ const EmployeesPage = () => {
                       <TableCell className="hidden md:table-cell">{user.role}</TableCell>
                       <TableCell className="hidden md:table-cell">{user.department || "N/A"}</TableCell>
                       <TableCell className="hidden lg:table-cell">{user.skillLevel}</TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewCv(user);
+                            }}
+                            title="View CV"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Badge variant="outline" className="text-xs">
+                            {user.cvUrl ? "Available" : "No CV"}
+                          </Badge>
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           {user.role === "Employee" && (
@@ -589,6 +707,75 @@ const EmployeesPage = () => {
               </div>
             </div>
             <SkillLevelForm user={skillDialogUser} onSubmit={handleSkillLevelUpdate} onCancel={handleSkillDialogClose} />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {cvDialogUser && (
+        <Dialog open={isCvDialogOpen} onOpenChange={setIsCvDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Employee CV - {cvDialogUser.name}</DialogTitle>
+            </DialogHeader>
+            {isLoadingCv ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                  <p>Loading CV...</p>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4">
+                {cvData ? (
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-2">CV Information</h4>
+                      <div className="space-y-2 text-sm">
+                        <div><span className="font-medium">Job Title:</span> {cvData.job_title}</div>
+                        <div><span className="font-medium">Submitted:</span> {new Date(cvData.submitted_at).toLocaleDateString()}</div>
+                        <div><span className="font-medium">File:</span> {cvData.cv_url.split('/').pop()}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-center">
+                      <div className="bg-gray-100 p-8 rounded-lg text-center">
+                        <FileText className="h-16 w-16 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">CV Document</p>
+                        <p className="text-xs text-gray-500 mt-1">Click download to view the full document</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setIsCvDialogOpen(false)}
+                      >
+                        Close
+                      </Button>
+                      <Button 
+                        onClick={() => handleDownloadCv(cvData.cv_url, cvDialogUser.name)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Download CV
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No CV Found</h3>
+                    <p className="text-gray-600 mb-4">This employee doesn't have a CV uploaded yet.</p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsCvDialogOpen(false)}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       )}

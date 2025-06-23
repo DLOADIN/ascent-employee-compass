@@ -296,14 +296,33 @@ def get_users(current_user_id):
     # If team leader, only return their department's employees
     if current_user['role'] == 'TeamLeader':
         cursor.execute('''
-            SELECT u.*, COUNT(t.id) as tasks_count 
+            SELECT u.*, COUNT(t.id) as tasks_count,
+                   ja.cv_url, ja.job_title as cv_job_title, ja.submitted_at as cv_submitted_at
             FROM users u 
             LEFT JOIN tasks t ON t.assigned_to = u.id 
+            LEFT JOIN (
+                SELECT user_id, cv_url, job_title, submitted_at,
+                       ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY submitted_at DESC) as rn
+                FROM job_applications 
+                WHERE cv_url IS NOT NULL
+            ) ja ON u.id = ja.user_id AND ja.rn = 1
             WHERE u.department = (SELECT department FROM users WHERE id = %s)
             GROUP BY u.id
         ''', (current_user_id,))
     else:
-        cursor.execute('SELECT u.*, COUNT(t.id) as tasks_count FROM users u LEFT JOIN tasks t ON t.assigned_to = u.id GROUP BY u.id')
+        cursor.execute('''
+            SELECT u.*, COUNT(t.id) as tasks_count,
+                   ja.cv_url, ja.job_title as cv_job_title, ja.submitted_at as cv_submitted_at
+            FROM users u 
+            LEFT JOIN tasks t ON t.assigned_to = u.id 
+            LEFT JOIN (
+                SELECT user_id, cv_url, job_title, submitted_at,
+                       ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY submitted_at DESC) as rn
+                FROM job_applications 
+                WHERE cv_url IS NOT NULL
+            ) ja ON u.id = ja.user_id AND ja.rn = 1
+            GROUP BY u.id
+        ''')
     
     users = cursor.fetchall()
     cursor.close()
@@ -2818,6 +2837,304 @@ def serve_quiz_submission_file(filename):
     if not os.path.exists(submission_path):
         return jsonify({'error': 'File not found'}), 404
     return send_file(submission_path, as_attachment=True)
+
+@app.route('/api/users/<int:user_id>/cv', methods=['GET'])
+@token_required
+def get_user_cv(current_user_id, user_id):
+    """Get CV for a specific user"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Check if current user is admin or team leader
+        cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+        current_user = cursor.fetchone()
+        
+        if current_user['role'] not in ['Admin', 'TeamLeader']:
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        # Get user's CV from job applications (most recent)
+        cursor.execute('''
+            SELECT cv_url, job_title, submitted_at
+            FROM job_applications 
+            WHERE user_id = %s AND cv_url IS NOT NULL
+            ORDER BY submitted_at DESC
+            LIMIT 1
+        ''', (user_id,))
+        
+        cv_data = cursor.fetchone()
+        
+        if not cv_data:
+            return jsonify({'error': 'No CV found for this user'}), 404
+            
+        return jsonify({
+            'cv_url': cv_data['cv_url'],
+            'job_title': cv_data['job_title'],
+            'submitted_at': cv_data['submitted_at'].isoformat() if cv_data['submitted_at'] else None
+        })
+
+    except Exception as e:
+        logger.error(f"Error fetching user CV: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/users/<int:user_id>/cv', methods=['POST'])
+@token_required
+def upload_user_cv(current_user_id, user_id):
+    """Upload CV for a specific user"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Check if current user is admin
+        cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+        current_user = cursor.fetchone()
+        
+        if current_user['role'] != 'Admin':
+            return jsonify({'error': 'Only admins can upload CVs'}), 403
+
+        # Check if file was uploaded
+        if 'cv' not in request.files:
+            return jsonify({'error': 'No CV file provided'}), 400
+            
+        cv_file = request.files['cv']
+        if cv_file.filename == '':
+            return jsonify({'error': 'No CV file selected'}), 400
+
+        # File validation
+        allowed_ext = {'.pdf', '.doc', '.docx'}
+        filename = secure_filename(cv_file.filename)
+        ext = os.path.splitext(filename)[1].lower()
+        if ext not in allowed_ext:
+            return jsonify({'error': 'Invalid file type. Only PDF, DOC, DOCX allowed.'}), 400
+
+        # Check file size (max 5MB)
+        cv_file.seek(0, 2)  # Seek to end
+        file_size = cv_file.tell()
+        cv_file.seek(0)  # Reset to beginning
+        if file_size > 5 * 1024 * 1024:
+            return jsonify({'error': 'File too large. Max 5MB.'}), 400
+
+        # Create unique filename
+        unique_filename = f"{user_id}_{int(time.time())}_{filename}"
+        filepath = os.path.join(CV_UPLOAD_FOLDER, unique_filename)
+        cv_file.save(filepath)
+        cv_url = f'/uploads/cvs/{unique_filename}'
+
+        # Store CV information in job_applications table as a special entry
+        cursor.execute('''
+            INSERT INTO job_applications (user_id, job_title, cover_letter, cv_url, status)
+            VALUES (%s, %s, %s, %s, %s)
+        ''', (user_id, 'Employee CV', 'CV uploaded by admin', cv_url, 'Accepted'))
+        
+        conn.commit()
+        
+        return jsonify({
+            'message': 'CV uploaded successfully',
+            'cv_url': cv_url
+        }), 201
+
+    except Exception as e:
+        logger.error(f"Error uploading user CV: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/admin/employee-report', methods=['GET'])
+@token_required
+def generate_employee_report(current_user_id):
+    """Generate a comprehensive employee report"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Check if current user is admin
+        cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+        current_user = cursor.fetchone()
+        
+        if current_user['role'] != 'Admin':
+            return jsonify({'error': 'Only admins can generate reports'}), 403
+
+        # Get all employees with their details
+        cursor.execute('''
+            SELECT 
+                u.id,
+                u.name,
+                u.email,
+                u.role,
+                u.department,
+                u.phone_number,
+                u.skill_level,
+                u.experience,
+                u.experience_level,
+                u.description,
+                u.is_active,
+                u.created_at,
+                COUNT(t.id) as total_tasks,
+                SUM(CASE WHEN t.status = 'Completed' THEN 1 ELSE 0 END) as completed_tasks,
+                SUM(CASE WHEN t.status = 'In Progress' THEN 1 ELSE 0 END) as in_progress_tasks,
+                AVG(t.progress) as avg_progress
+            FROM users u
+            LEFT JOIN tasks t ON u.id = t.assigned_to
+            WHERE u.role = 'Employee'
+            GROUP BY u.id
+            ORDER BY u.department, u.name
+        ''')
+        
+        employees = cursor.fetchall()
+        
+        # Get department statistics
+        cursor.execute('''
+            SELECT 
+                department,
+                COUNT(*) as employee_count,
+                AVG(experience) as avg_experience,
+                COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_count
+            FROM users 
+            WHERE role = 'Employee'
+            GROUP BY department
+        ''')
+        
+        department_stats = cursor.fetchall()
+        
+        # Get overall statistics
+        cursor.execute('''
+            SELECT 
+                COUNT(*) as total_employees,
+                COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_employees,
+                AVG(experience) as avg_experience,
+                COUNT(CASE WHEN skill_level = 'Beginner' THEN 1 END) as beginners,
+                COUNT(CASE WHEN skill_level = 'Intermediate' THEN 1 END) as intermediates,
+                COUNT(CASE WHEN skill_level = 'Advanced' THEN 1 END) as advanced
+            FROM users 
+            WHERE role = 'Employee'
+        ''')
+        
+        overall_stats = cursor.fetchone()
+        
+        # Get recent activity
+        cursor.execute('''
+            SELECT 
+                u.name,
+                u.department,
+                t.title as task_title,
+                t.status,
+                t.updated_at
+            FROM tasks t
+            JOIN users u ON t.assigned_to = u.id
+            WHERE u.role = 'Employee'
+            ORDER BY t.updated_at DESC
+            LIMIT 10
+        ''')
+        
+        recent_activity = cursor.fetchall()
+        
+        report = {
+            'generated_at': datetime.datetime.now().isoformat(),
+            'overall_stats': {
+                'total_employees': overall_stats['total_employees'],
+                'active_employees': overall_stats['active_employees'],
+                'avg_experience': float(overall_stats['avg_experience']) if overall_stats['avg_experience'] else 0,
+                'skill_distribution': {
+                    'beginners': overall_stats['beginners'],
+                    'intermediates': overall_stats['intermediates'],
+                    'advanced': overall_stats['advanced']
+                }
+            },
+            'department_stats': department_stats,
+            'employees': employees,
+            'recent_activity': recent_activity
+        }
+        
+        return jsonify(report)
+
+    except Exception as e:
+        logger.error(f"Error generating employee report: {str(e)}")
+        return jsonify({'error': 'Server error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/admin/export-employee-report-pdf', methods=['GET'])
+@token_required
+def export_employee_report_pdf(current_user_id):
+    """Export employee report as PDF"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Check if current user is admin
+        cursor.execute('SELECT role FROM users WHERE id = %s', (current_user_id,))
+        current_user = cursor.fetchone()
+        
+        if current_user['role'] != 'Admin':
+            return jsonify({'error': 'Only admins can export reports'}), 403
+
+        # Get employee data for PDF
+        cursor.execute('''
+            SELECT 
+                name, email, department, phone_number, skill_level, 
+                experience, experience_level, is_active, created_at
+            FROM users 
+            WHERE role = 'Employee'
+            ORDER BY department, name
+        ''')
+        
+        employees = cursor.fetchall()
+
+        # Create PDF
+        pdf = FPDF(orientation='L', unit='mm', format='A4')
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.cell(0, 10, txt="Employee Report", ln=True, align='C')
+        pdf.ln(5)
+        
+        # Add generation date
+        pdf.set_font("Arial", size=10)
+        pdf.cell(0, 8, txt=f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True)
+        pdf.ln(5)
+        
+        # Table header
+        col_widths = [35, 50, 25, 30, 25, 20, 20, 15, 25]
+        headers = ["Name", "Email", "Department", "Phone", "Skill Level", "Experience", "Exp Level", "Active", "Created"]
+        
+        for i, header in enumerate(headers):
+            pdf.cell(col_widths[i], 10, header, 1, 0, 'C')
+        pdf.ln()
+        
+        # Table rows
+        for emp in employees:
+            pdf.cell(col_widths[0], 8, str(emp['name'])[:25], 1)
+            pdf.cell(col_widths[1], 8, str(emp['email'])[:35], 1)
+            pdf.cell(col_widths[2], 8, str(emp['department'] or ''), 1)
+            pdf.cell(col_widths[3], 8, str(emp['phone_number'] or '')[:20], 1)
+            pdf.cell(col_widths[4], 8, str(emp['skill_level'] or ''), 1)
+            pdf.cell(col_widths[5], 8, str(emp['experience'] or ''), 1)
+            pdf.cell(col_widths[6], 8, str(emp['experience_level'] or ''), 1)
+            pdf.cell(col_widths[7], 8, 'Yes' if emp['is_active'] else 'No', 1)
+            
+            created_date = emp['created_at'].strftime('%Y-%m-%d') if emp['created_at'] else ''
+            pdf.cell(col_widths[8], 8, created_date, 1)
+            pdf.ln()
+
+        # Output PDF to memory
+        try:
+            pdf_bytes = pdf.output(dest='S').encode('latin1')
+            pdf_output = io.BytesIO(pdf_bytes)
+            pdf_output.seek(0)
+            return send_file(pdf_output, as_attachment=True, download_name="employee_report.pdf", mimetype='application/pdf')
+        except Exception as e:
+            print('PDF generation error:', traceback.format_exc())
+            return jsonify({'error': 'PDF generation failed', 'details': str(e)}), 500
+            
+    except Exception as e:
+        return jsonify({'error': 'Server error', 'details': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 #
 if __name__ == '__main__':

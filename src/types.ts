@@ -31,6 +31,9 @@ export interface User {
   skills?: Skill[];
   createdAt?: Date;
   updatedAt?: Date;
+  cvUrl?: string;
+  cvJobTitle?: string;
+  cvSubmittedAt?: string;
 }
 
 // Task status
