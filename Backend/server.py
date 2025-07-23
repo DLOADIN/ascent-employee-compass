@@ -3167,4 +3167,4 @@ def export_employee_report_pdf(current_user_id):
 #
 if __name__ == '__main__':
     # Log the server startup
-    app.run(debug=True, host="0.0.0.0")
+    app.run(debug=True)
