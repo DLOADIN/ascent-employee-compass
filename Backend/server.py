@@ -77,11 +77,11 @@ os.makedirs(TASK_DOCUMENTS_FOLDER, exist_ok=True)
 
 # Database configuration
 db_config = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'user': os.getenv('DB_USER', 'root'),
-    'password': os.getenv('DB_PASSWORD', ''),
-    'database': os.getenv('DB_NAME', 'hrdatabase'),
-    'port': int(os.getenv('DB_PORT', '3306'))
+    'host': os.environ['DB_HOST'],
+    'user': os.environ['DB_USER'],
+    'password': os.environ['DB_PASSWORD'],
+    'database': os.environ['DB_NAME'],
+    'port': int(os.environ['DB_PORT'])
 }
 
 # JWT Configuration
