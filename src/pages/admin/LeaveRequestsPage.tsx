@@ -20,7 +20,7 @@ export default function LeaveRequestsPage() {
 
   const fetchData = async () => {
     const token = localStorage.getItem('token');
-    const res = await axios.get('http://localhost:5000/api/leave-requests', {
+    const res = await axios.get('https://ascent-employee-compass.onrender.com/api/leave-requests', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     setRequests(res.data);
@@ -28,7 +28,7 @@ export default function LeaveRequestsPage() {
 
   const updateLeaveStatus = async (id, status) => {
     const token = localStorage.getItem('token');
-    await axios.patch(`http://localhost:5000/api/leave-requests/${id}/status`, { status }, {
+    await axios.patch(`https://ascent-employee-compass.onrender.com/api/leave-requests/${id}/status`, { status }, {
       headers: { Authorization: `Bearer ${token}` }
     });
     fetchData();

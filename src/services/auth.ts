@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { Department, UserRole } from '@/types';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://ascent-employee-compass.onrender.com/api';
 
 export interface LoginResponse {
   token: string;

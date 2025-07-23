@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Upload, FileText, Users } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://ascent-employee-compass.onrender.com';
 
 export default function TeamLeaderCoursesPage() {
   const [quizzes, setQuizzes] = useState([]);

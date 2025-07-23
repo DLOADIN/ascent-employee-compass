@@ -51,7 +51,7 @@ const NotificationsPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const { data } = await axios.get<Notification[]>('http://localhost:5000/api/notifications', {
+      const { data } = await axios.get<Notification[]>('https://ascent-employee-compass.onrender.com/api/notifications', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -93,7 +93,7 @@ const NotificationsPage = () => {
       };
 
       await axios.post(
-        'http://localhost:5000/api/notifications',
+        'https://ascent-employee-compass.onrender.com/api/notifications',
         notificationData,
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -132,7 +132,7 @@ const NotificationsPage = () => {
     if (selectedNotification) {
       try {
         const token = localStorage.getItem('token');
-        await axios.delete(`http://localhost:5000/api/notifications/${selectedNotification}`, {
+        await axios.delete(`https://ascent-employee-compass.onrender.com/api/notifications/${selectedNotification}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 

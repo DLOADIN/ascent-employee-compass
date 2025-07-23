@@ -20,7 +20,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://ascent-employee-compass.onrender.com/api';
 
 const taskFormSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -267,7 +267,7 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const url = `http://localhost:5000${task.document_url}`;
+                  const url = `https://ascent-employee-compass.onrender.com${task.document_url}`;
                   window.open(url, '_blank');
                 }}
                 className="w-full justify-start"
@@ -315,7 +315,7 @@ export function TaskBoard({ tasks, teamMembers, canEdit = false, onEdit, onDelet
           variant="outline"
           onClick={async () => {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:5000/api/team-leader/export-tasks-pdf', {
+            const res = await fetch('https://ascent-employee-compass.onrender.com/api/team-leader/export-tasks-pdf', {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {

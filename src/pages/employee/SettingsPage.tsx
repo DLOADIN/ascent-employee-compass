@@ -76,7 +76,7 @@ export default function SettingsPage() {
         description: formData.description
       };
 
-      const response = await fetch(`http://localhost:5000/api/users/${currentUser.id}`, {
+      const response = await fetch(`https://ascent-employee-compass.onrender.com/api/users/${currentUser.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ export default function SettingsPage() {
     }
     
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${currentUser.id}/password`, {
+      const response = await fetch(`https://ascent-employee-compass.onrender.com/api/users/${currentUser.id}/password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -7,7 +7,7 @@ import { FileText, BookOpen, BriefcaseBusiness, CheckCircle2, Clock } from "luci
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://ascent-employee-compass.onrender.com/api';
 
 interface DashboardData {
   department: string;

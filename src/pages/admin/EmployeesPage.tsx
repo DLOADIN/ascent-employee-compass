@@ -66,7 +66,7 @@ const EmployeesPage = () => {
   const fetchEmployees = async () => {
     try {
       const token = localStorage.getItem('token');
-      const { data } = await axios.get<any[]>('http://localhost:5000/api/users', {
+      const { data } = await axios.get<any[]>('https://ascent-employee-compass.onrender.com/api/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -131,7 +131,7 @@ const EmployeesPage = () => {
       };
 
       const { data } = await axios.post<any>(
-        'http://localhost:5000/api/users',
+        'https://ascent-employee-compass.onrender.com/api/users',
         formattedData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -186,7 +186,7 @@ const EmployeesPage = () => {
       };
 
       const response = await axios.put<any>(
-        `http://localhost:5000/api/users/${userId}`,
+        `https://ascent-employee-compass.onrender.com/api/users/${userId}`,
         formattedData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -260,7 +260,7 @@ const EmployeesPage = () => {
     if (selectedUser) {
       try {
         const token = localStorage.getItem('token');
-        await axios.delete(`http://localhost:5000/api/users/${selectedUser.id}`, {
+        await axios.delete(`https://ascent-employee-compass.onrender.com/api/users/${selectedUser.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -312,7 +312,7 @@ const EmployeesPage = () => {
       };
 
       const { data } = await axios.put<any>(
-        `http://localhost:5000/api/users/${updatedUser.id}`,
+        `https://ascent-employee-compass.onrender.com/api/users/${updatedUser.id}`,
         formattedData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -356,7 +356,7 @@ const EmployeesPage = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:5000/api/users/${skillDialogUser.id}/promote-skill`,
+        `https://ascent-employee-compass.onrender.com/api/users/${skillDialogUser.id}/promote-skill`,
         { skillLevel: values.skillLevel },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -375,7 +375,7 @@ const EmployeesPage = () => {
       setIsCvDialogOpen(true);
       
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/users/${user.id}/cv`, {
+      const response = await axios.get(`https://ascent-employee-compass.onrender.com/api/users/${user.id}/cv`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -401,7 +401,7 @@ const EmployeesPage = () => {
   };
 
   const handleDownloadCv = (cvUrl: string, employeeName: string) => {
-    const fullUrl = `http://localhost:5000${cvUrl}`;
+    const fullUrl = `https://ascent-employee-compass.onrender.com${cvUrl}`;
     const link = document.createElement('a');
     link.href = fullUrl;
     link.download = `${employeeName}_CV.pdf`;
@@ -413,7 +413,7 @@ const EmployeesPage = () => {
   const handleGenerateReport = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/admin/export-employee-report-pdf', {
+      const response = await fetch('https://ascent-employee-compass.onrender.com/api/admin/export-employee-report-pdf', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -464,7 +464,7 @@ const EmployeesPage = () => {
             className="sm:w-auto w-full ml-2"
             onClick={async () => {
               const token = localStorage.getItem('token');
-              const res = await fetch('http://localhost:5000/api/admin/export-employees-pdf', {
+              const res = await fetch('https://ascent-employee-compass.onrender.com/api/admin/export-employees-pdf', {
                 headers: { 'Authorization': `Bearer ${token}` }
               });
               if (res.ok) {

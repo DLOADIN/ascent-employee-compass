@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { format } from "date-fns";
 import { AlertCircle, Clock, CheckCircle } from "lucide-react";
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://ascent-employee-compass.onrender.com/api';
 
 interface TaskResponse {
   tasks: Task[];
@@ -97,7 +97,7 @@ export default function TasksPage() {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('No authentication token found');
 
-        const response = await fetch('http://localhost:5000/api/employee/progress', {
+        const response = await fetch('https://ascent-employee-compass.onrender.com/api/employee/progress', {
           headers: {
             'Authorization': `Bearer ${token}`
           }

@@ -59,7 +59,7 @@ export default function AdminDashboard() {
     const fetchDashboardStats = async () => {
       try {
         const token = localStorage.getItem('token');
-        const { data } = await axios.get<DashboardStats>('http://localhost:5000/api/admin/dashboard-stats', {
+        const { data } = await axios.get<DashboardStats>('https://ascent-employee-compass.onrender.com/api/admin/dashboard-stats', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setStats(data);
