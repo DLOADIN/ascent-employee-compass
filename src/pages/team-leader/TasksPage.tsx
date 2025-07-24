@@ -28,7 +28,7 @@ const taskFormSchema = z.object({
 
 type TaskFormValues = z.infer<typeof taskFormSchema>;
 
-const API_URL = 'https://ascent-employee-compass.onrender.com/api';
+const API_URL = 'http://localhost:5000/api';
 
 export default function TeamLeaderTasksPage() {
   const { currentUser, users, tasks, addTask, updateTask, deleteTask } = useAppContext();
@@ -137,7 +137,7 @@ export default function TeamLeaderTasksPage() {
   useEffect(() => {
     const fetchProgress = async () => {
       const token = localStorage.getItem('token');
-      const res = await fetch('https://ascent-employee-compass.onrender.com/api/team-leader/department-members-progress', {
+      const res = await fetch('http://localhost:5000/api/team-leader/department-members-progress', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -444,7 +444,7 @@ export default function TeamLeaderTasksPage() {
           variant="outline"
           onClick={async () => {
             const token = localStorage.getItem('token');
-            const res = await fetch('https://ascent-employee-compass.onrender.com/api/team-leader/export-tasks-pdf', {
+            const res = await fetch('http://localhost:5000/api/team-leader/export-tasks-pdf', {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {

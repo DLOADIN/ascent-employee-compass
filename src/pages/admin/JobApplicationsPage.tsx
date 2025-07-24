@@ -22,7 +22,7 @@ export default function JobApplicationsPage() {
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem('token');
-      const res = await axios.get('https://ascent-employee-compass.onrender.com/api/job-applications', {
+      const res = await axios.get('http://localhost:5000/api/job-applications', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setApplications(res.data);
@@ -68,7 +68,7 @@ export default function JobApplicationsPage() {
                       <TableCell>{app.job_title}</TableCell>
                       <TableCell className="max-w-xs truncate" title={app.cover_letter}>{app.cover_letter}</TableCell>
                       <TableCell>
-                        <a href={`https://ascent-employee-compass.onrender.com${app.cv_url}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Download CV</a>
+                        <a href={`http://localhost:5000${app.cv_url}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Download CV</a>
                       </TableCell>
                       <TableCell>
                         <Badge className={statusColor(app.status)}>{app.status}</Badge>

@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://ascent-employee-compass.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function CoursesPage() {
   const { currentUser, courses, enrollInCourse } = useAppContext();

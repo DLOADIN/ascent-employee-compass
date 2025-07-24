@@ -41,7 +41,7 @@ export default function JobApplicationForm() {
 
     const token = localStorage.getItem('token');
     try {
-      await axios.post('https://ascent-employee-compass.onrender.com/api/job-applications', formData, {
+      await axios.post('http://localhost:5000/api/job-applications', formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'

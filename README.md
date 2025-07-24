@@ -46,7 +46,7 @@ Ascent Employee Compass is a comprehensive HR management platform designed to st
    ```bash
    python server.py
    ```
-   The backend will run on `https://ascent-employee-compass.onrender.com` by default.
+   The backend will run on `http://localhost:5000` by default.
 
 ### Frontend Setup
 1. **Navigate to the frontend directory:**

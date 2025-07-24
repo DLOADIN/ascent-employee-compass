@@ -6,7 +6,7 @@ import { BarChart, PieChart, Bar, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Leg
 import { FileText, BookOpen, Send, Award } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-const API_URL = 'https://ascent-employee-compass.onrender.com/api';
+const API_URL = 'http://localhost:5000/api';
 
 interface DashboardData {
   department: string;

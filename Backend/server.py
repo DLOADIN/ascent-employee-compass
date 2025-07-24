@@ -77,11 +77,11 @@ os.makedirs(TASK_DOCUMENTS_FOLDER, exist_ok=True)
 
 # Database configuration
 db_config = {
-    'host': os.environ['DB_HOST'],
-    'user': os.environ['DB_USER'],
-    'password': os.environ['DB_PASSWORD'],
-    'database': os.environ['DB_NAME'],
-    'port': int(os.environ['DB_PORT'])
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD', ''),
+    'database': os.getenv('DB_NAME', 'hrdatabase'),
+    'port': int(os.getenv('DB_PORT', 3306))
 }
 
 # JWT Configuration
@@ -2694,15 +2694,6 @@ def serve_cv(filename):
     return send_file(os.path.join(CV_UPLOAD_FOLDER, filename))
 
 
-
-
-
-
-
-
-
-
-
 @app.route('/api/users/<int:user_id>/promote-skill', methods=['PUT'])
 @token_required
 def promote_user_skill(current_user_id, user_id):
@@ -3167,4 +3158,5 @@ def export_employee_report_pdf(current_user_id):
 #
 if __name__ == '__main__':
     # Log the server startup
-    app.run(debug=True)
+    #Always remember to run the app at port 5000
+    app.run(debug=True, port=5000)

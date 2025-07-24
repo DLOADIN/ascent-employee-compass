@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-const API_URL = 'https://ascent-employee-compass.onrender.com/api';
+const API_URL = 'http://localhost:5000/api';
 
 const apiClient = axios.create({
   baseURL: API_URL,
