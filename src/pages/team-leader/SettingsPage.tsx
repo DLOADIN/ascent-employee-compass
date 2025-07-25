@@ -15,7 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Eye, EyeOff } from "lucide-react";
 
 // Add API URL constant
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://manzi897098.pythonanywhere.com/api';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),

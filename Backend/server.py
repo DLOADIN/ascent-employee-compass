@@ -75,14 +75,30 @@ os.makedirs(QUIZ_UPLOAD_FOLDER, exist_ok=True)
 TASK_DOCUMENTS_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'task_documents')
 os.makedirs(TASK_DOCUMENTS_FOLDER, exist_ok=True)
 
+# # Database configuration
+# db_config = {
+#     'host': os.getenv('DB_HOST', 'localhost'),
+#     'user': os.getenv('DB_USER', 'root'),
+#     'password': os.getenv('DB_PASSWORD', ''),
+#     'database': os.getenv('DB_NAME', 'hrdatabase'),
+#     'port': int(os.getenv('DB_PORT', 3306))
+# }
+
+
+
+
+
 # Database configuration
 db_config = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'user': os.getenv('DB_USER', 'root'),
-    'password': os.getenv('DB_PASSWORD', ''),
-    'database': os.getenv('DB_NAME', 'hrdatabase'),
+    'host': os.getenv('DB_HOST', 'manzi897098.mysql.pythonanywhere-services.com'),
+    'user': os.getenv('DB_USER', 'manzi897098'),
+    'password': os.getenv('DB_PASSWORD', 'Sars1212@1220120'),
+    'database': os.getenv('DB_NAME', 'manzi897098$default'),
     'port': int(os.getenv('DB_PORT', 3306))
 }
+
+
+
 
 # JWT Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'x7k9p2m4q8v5n3j6h1t0r2y5u8w3z6b9')

@@ -1,21 +1,8 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Host: 127.0.0.1
--- Generation Time: Jul 24, 2025 at 05:44 PM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
-
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
 
 --
 -- Database: `hrdatabase`
@@ -41,7 +28,6 @@ CREATE TABLE `courses` (
   `difficulty` enum('Beginner','Intermediate','Advanced') DEFAULT 'Beginner'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
 
 --
 -- Table structure for table `course_certificates`
@@ -57,8 +43,6 @@ CREATE TABLE `course_certificates` (
   `quiz_score` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
-
 --
 -- Table structure for table `course_enrollments`
 --
@@ -71,8 +55,6 @@ CREATE TABLE `course_enrollments` (
   `enrolled_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `completed_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `course_interactions`
@@ -89,8 +71,6 @@ CREATE TABLE `course_interactions` (
   `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
-
 --
 -- Table structure for table `course_quizzes`
 --
@@ -103,8 +83,6 @@ CREATE TABLE `course_quizzes` (
   `passing_score` int(11) DEFAULT 70,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `course_quiz_attempts`
@@ -120,8 +98,6 @@ CREATE TABLE `course_quiz_attempts` (
   `answers` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`answers`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
-
 --
 -- Table structure for table `course_quiz_questions`
 --
@@ -135,8 +111,6 @@ CREATE TABLE `course_quiz_questions` (
   `correct_answer` text DEFAULT NULL,
   `points` int(11) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `course_watch_history`
@@ -153,8 +127,6 @@ CREATE TABLE `course_watch_history` (
   `watch_position` int(11) DEFAULT NULL,
   `completed_segments` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`completed_segments`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `employee_course_demonstrations`

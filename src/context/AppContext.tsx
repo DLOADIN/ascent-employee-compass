@@ -66,7 +66,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         console.log('Validating token with backend...');
         // Validate token with backend
-        const response = await axios.get('http://localhost:5000/api/auth/validate', {
+        const response = await axios.get('https://manzi897098.pythonanywhere.com/api/auth/validate', {
           headers: { Authorization: `Bearer ${storedToken}` }
         });
 
@@ -138,7 +138,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!token) return;
     setNotificationsLoading(true);
     try {
-      const { data } = await axios.get('http://localhost:5000/api/notifications', {
+      const { data } = await axios.get('https://manzi897098.pythonanywhere.com/api/notifications', {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Transform backend fields to Notification type

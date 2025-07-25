@@ -35,7 +35,7 @@ export default function LeaveRequestForm() {
     // Fetch all leave requests and filter to current user
     const fetchLeaves = async () => {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/leave-requests', {
+      const res = await axios.get('https://manzi897098.pythonanywhere.com/api/leave-requests', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       // Try to filter by current user if possible
@@ -53,7 +53,7 @@ export default function LeaveRequestForm() {
     }
     const token = localStorage.getItem('token');
     try {
-      await axios.post('http://localhost:5000/api/leave-requests', {
+      await axios.post('https://manzi897098.pythonanywhere.com/api/leave-requests', {
         type,
         start_date: start.toISOString().slice(0, 10),
         end_date: end.toISOString().slice(0, 10),

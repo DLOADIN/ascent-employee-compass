@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, FileText } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://manzi897098.pythonanywhere.com';
 
 export default function EmployeeQuizzesPage() {
   const [quizzes, setQuizzes] = useState([]);
