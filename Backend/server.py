@@ -85,9 +85,6 @@ os.makedirs(TASK_DOCUMENTS_FOLDER, exist_ok=True)
 # }
 
 
-
-
-
 # Database configuration
 db_config = {
     'host': os.getenv('DB_HOST', 'manzi897098.mysql.pythonanywhere-services.com'),
@@ -96,9 +93,6 @@ db_config = {
     'database': os.getenv('DB_NAME', 'manzi897098$default'),
     'port': int(os.getenv('DB_PORT', 3306))
 }
-
-
-
 
 # JWT Configuration
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'x7k9p2m4q8v5n3j6h1t0r2y5u8w3z6b9')
