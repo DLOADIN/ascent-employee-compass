@@ -197,7 +197,7 @@ export default function LoginPage() {
                 <div>
                   <h4 className="font-semibold">Finance Department</h4>
                   <ul className="space-y-1">
-                    <li>Jerry Jane (employee.finance@hrms.com / TestPassword123!)</li>
+                    <li>Sarah Johnson (sarah.j@company.com / TestPassword123!)</li>
                   </ul>
                 </div>
                 <div>
